@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Airbnb NYC – Data Visualization Dashboard</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    /* ── Global ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #1a1d2e 0%, #252a40 100%);
+      padding: 18px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #2e3347;
+    }
+    header h1 { font-size: 1.4rem; color: #9fa8da; letter-spacing: 1px; }
+    header span { font-size: .8rem; color: #616880; }
+
+    /* ── Filter Bar ── */
+    #filter-bar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 32px;
+      background: #151821;
+      border-bottom: 1px solid #2e3347;
+      flex-wrap: wrap;
+    }
+    #filter-bar label { font-size: .8rem; color: #9e9e9e; }
+    #filter-bar select, #filter-bar input[type=range] {
+      background: #1e2130;
+      color: #cdd;
+      border: 1px solid #3a3f58;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: .82rem;
+      cursor: pointer;
+    }
+    #price-val { font-size: .8rem; color: #9fa8da; min-width: 80px; }
+
+    /* ── Grid ── */
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+      gap: 20px;
+      padding: 24px 32px;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: #151821;
+      border: 1px solid #2e3347;
+      border-radius: 12px;
+      padding: 20px;
+      transition: box-shadow .2s;
+    }
+    .card:hover { box-shadow: 0 0 18px #3f51b540; }
+    .card h2 { font-size: .95rem; color: #9fa8da; margin-bottom: 4px; }
+    .card p.sub { font-size: .75rem; color: #555d7a; margin-bottom: 14px; }
+
+    /* ── SVG defaults ── */
+    .axis text { fill: #7a829e; font-size: 11px; }
+    .axis path, .axis line { stroke: #2e3347; }
+    .grid line { stroke: #232636; stroke-dasharray: 3,3; }
+
+    /* ── Tooltip ── */
+    #tooltip {
+      position: fixed;
+      background: #1e2130ee;
+      border: 1px solid #3a3f58;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: .8rem;
+      color: #cdd;
+      pointer-events: none;
+      display: none;
+      z-index: 99;
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 16px;
+      font-size: .72rem;
+      color: #3a3f58;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🏙️ Airbnb NYC – Dashboard</h1>
+  <span>Nguồn: Inside Airbnb · CSC10108 Data Visualization</span>
+</header>
+
+<!-- ═══════════ SHARED FILTER ═══════════ -->
+<div id="filter-bar">
+  <label>Quận:</label>
+  <select id="sel-borough">
+    <option value="All">-- Tất cả --</option>
+  </select>
+
+  <label>Loại phòng:</label>
+  <select id="sel-type">
+    <option value="All">-- Tất cả --</option>
+  </select>
+
+  <label>Giá tối đa: </label>
+  <input type="range" id="sl-price" min="0" max="500" value="500" step="10"/>
+  <span id="price-val">≤ $500</span>
+</div>
+
+<div id="tooltip"></div>
+
+<!-- ═══════════ CHART GRID ═══════════ -->
+<div id="grid">
+
+  <!--  CARD 1 – Bar Chart  (mỗi thành viên thay nội dung này) -->
+  <div class="card" id="card-bar">
+    <h2>📊 Chart A – Bar (Sample)</h2>
+    <p class="sub">Giá thuê trung bình theo Quận NYC — Gợi ý: Thay thế bằng Task của bạn</p>
+    <svg id="svg-bar"></svg>
+  </div>
+
+  <!--  CARD 2 – Scatter Plot  -->
+  <div class="card" id="card-scatter">
+    <h2>🔵 Chart B – Scatter (Sample)</h2>
+    <p class="sub">Giá so với số lượng Reviews — Gợi ý: Thay thế bằng Task của bạn</p>
+    <svg id="svg-scatter"></svg>
+  </div>
+
+</div>
+
+<footer>CSC10108 · Trực Quan Hóa Dữ Liệu · 2025–2026</footer>
+
+<script>
+// ════════════════════════════════════════
+//  CONFIG & HELPERS
+// ════════════════════════════════════════
+const COLOR = d3.scaleOrdinal()
+  .domain(['Manhattan','Brooklyn','Queens','Bronx','Staten Island'])
+  .range(['#7986cb','#4db6ac','#ffb74d','#f06292','#aed581']);  // Colorblind-safe ý, OK
+
+const tip = d3.select('#tooltip');
+function showTip(html, event) {
+  tip.style('display','block').html(html)
+     .style('left', (event.clientX + 14) + 'px')
+     .style('top',  (event.clientY - 28) + 'px');
+}
+function hideTip() { tip.style('display','none'); }
+
+// ════════════════════════════════════════
+//  LOAD DATA – đọc Master CSV
+// ════════════════════════════════════════
+d3.csv('../dataset/listings_clean.csv', d => ({
+  borough : d.neighbourhood_group,
+  roomType: d.room_type,
+  price   : +d.price,
+  reviews : +d.number_of_reviews,
+  lat     : +d.latitude,
+  lng     : +d.longitude,
+})).then(raw => {
+
+  // Populate filter dropdowns
+  const boroughs = ['All', ...new Set(raw.map(d=>d.borough).filter(Boolean).sort())];
+  const types    = ['All', ...new Set(raw.map(d=>d.roomType).filter(Boolean).sort())];
+  d3.select('#sel-borough').selectAll('option').data(boroughs).join('option')
+    .attr('value', d=>d).text(d=>d);
+  d3.select('#sel-type').selectAll('option').data(types).join('option')
+    .attr('value', d=>d).text(d=>d);
+
+  // Re-draw on filter change
+  function filtered() {
+    const b = d3.select('#sel-borough').property('value');
+    const t = d3.select('#sel-type').property('value');
+    const p = +d3.select('#sl-price').property('value');
+    d3.select('#price-val').text(`≤ $${p}`);
+    return raw.filter(d =>
+      (b === 'All' || d.borough  === b) &&
+      (t === 'All' || d.roomType === t) &&
+      d.price > 0 && d.price <= p
+    );
+  }
+
+  function redraw() {
+    const data = filtered();
+    drawBar(data);
+    drawScatter(data);
+  }
+
+  d3.selectAll('#sel-borough, #sel-type').on('change', redraw);
+  d3.select('#sl-price').on('input', redraw);
+  redraw();
+
+}).catch(err => {
+  console.warn('Chưa có data:', err.message);
+  // Dùng data mẫu khi chưa có CSV
+  const sample = [
+    {borough:'Manhattan', roomType:'Entire home/apt', price:220, reviews:15},
+    {borough:'Brooklyn',  roomType:'Private room',    price:95,  reviews:42},
+    {borough:'Queens',    roomType:'Private room',    price:65,  reviews:88},
+    {borough:'Bronx',     roomType:'Shared room',     price:45,  reviews:10},
+    {borough:'Staten Island', roomType:'Entire home/apt', price:130, reviews:5},
+  ];
+  drawBar(sample);
+  drawScatter(sample);
+});
+
+// ════════════════════════════════════════
+//  CHART A – BAR CHART
+// ════════════════════════════════════════
+function drawBar(data) {
+  const card = document.getElementById('card-bar');
+  const W = card.clientWidth - 40, H = 280;
+  const margin = {top:10, right:20, bottom:60, left:60};
+  const w = W - margin.left - margin.right;
+  const h = H - margin.top  - margin.bottom;
+
+  // Aggregate: giá trung bình theo borough
+  const rolled = d3.rollups(data, v => d3.mean(v, d => d.price), d => d.borough)
+    .map(([k,v]) => ({borough:k, avg:v}))
+    .sort((a,b) => b.avg - a.avg);
+
+  const svg = d3.select('#svg-bar').attr('width', W).attr('height', H);
+  svg.selectAll('*').remove();
+  const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+  const x = d3.scaleBand().domain(rolled.map(d=>d.borough)).range([0,w]).padding(.35);
+  const y = d3.scaleLinear().domain([0, d3.max(rolled, d=>d.avg)*1.1]).range([h,0]);
+
+  // Grid
+  g.append('g').attr('class','grid')
+   .call(d3.axisLeft(y).tickSize(-w).tickFormat(''));
+
+  // Bars
+  g.selectAll('rect').data(rolled).join('rect')
+    .attr('x', d => x(d.borough))
+    .attr('y', d => y(d.avg))
+    .attr('width', x.bandwidth())
+    .attr('height', d => h - y(d.avg))
+    .attr('rx', 5)
+    .attr('fill', d => COLOR(d.borough))
+    .on('mouseover', (event, d) =>
+      showTip(`<b>${d.borough}</b><br/>Avg Price: <b>$${d.avg.toFixed(0)}</b>`, event))
+    .on('mousemove', (event, d) =>
+      showTip(`<b>${d.borough}</b><br/>Avg Price: <b>$${d.avg.toFixed(0)}</b>`, event))
+    .on('mouseout', hideTip);
+
+  // Axes
+  g.append('g').attr('class','axis').attr('transform',`translate(0,${h})`).call(d3.axisBottom(x))
+   .selectAll('text').attr('transform','rotate(-20)').style('text-anchor','end');
+  g.append('g').attr('class','axis').call(d3.axisLeft(y).ticks(5).tickFormat(d=>`$${d}`));
+}
+
+// ════════════════════════════════════════
+//  CHART B – SCATTER PLOT
+// ════════════════════════════════════════
+function drawScatter(data) {
+  const card = document.getElementById('card-scatter');
+  const W = card.clientWidth - 40, H = 280;
+  const margin = {top:10, right:20, bottom:50, left:60};
+  const w = W - margin.left - margin.right;
+  const h = H - margin.top  - margin.bottom;
+
+  // Lấy tối đa 600 điểm để không lag
+  const sample = data.length > 600 ? d3.shuffle([...data]).slice(0,600) : data;
+
+  const svg = d3.select('#svg-scatter').attr('width', W).attr('height', H);
+  svg.selectAll('*').remove();
+  const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+  const x = d3.scaleLinear().domain([0, d3.max(sample, d=>d.reviews)*1.05]).range([0,w]);
+  const y = d3.scaleLinear().domain([0, d3.max(sample, d=>d.price )*1.05]).range([h,0]);
+
+  // Grid
+  g.append('g').attr('class','grid').call(d3.axisLeft(y).tickSize(-w).tickFormat(''));
+
+  // Dots
+  g.selectAll('circle').data(sample).join('circle')
+    .attr('cx', d => x(d.reviews))
+    .attr('cy', d => y(d.price))
+    .attr('r', 4).attr('opacity', .65)
+    .attr('fill', d => COLOR(d.borough))
+    .on('mouseover', (event, d) =>
+      showTip(`<b>${d.borough}</b><br/>Price: $${d.price} | Reviews: ${d.reviews}`, event))
+    .on('mousemove', (event, d) =>
+      showTip(`<b>${d.borough}</b><br/>Price: $${d.price} | Reviews: ${d.reviews}`, event))
+    .on('mouseout', hideTip);
+
+  // Axes
+  g.append('g').attr('class','axis').attr('transform',`translate(0,${h})`).call(d3.axisBottom(x).ticks(5));
+  g.append('g').attr('class','axis').call(d3.axisLeft(y).ticks(5).tickFormat(d=>`$${d}`));
+
+  // Labels
+  g.append('text').attr('x',w/2).attr('y',h+40).attr('text-anchor','middle')
+   .attr('fill','#555d7a').attr('font-size',11).text('Số lượng Reviews');
+  g.append('text').attr('transform','rotate(-90)').attr('x',-h/2).attr('y',-45)
+   .attr('text-anchor','middle').attr('fill','#555d7a').attr('font-size',11).text('Giá / đêm ($)');
+}
+</script>
+</body>
+</html>
