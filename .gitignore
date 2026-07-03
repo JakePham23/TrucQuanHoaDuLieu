@@ -2,3 +2,5 @@ src/
 .venv/
 slide/
 dataset/
+.DS_Store
+data profiling/
