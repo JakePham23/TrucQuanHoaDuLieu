@@ -279,8 +279,38 @@
 
 <body>
 
-  <h1>NYC Airbnb Interactive Dashboard</h1>
-  <div class="subtitle">Data Visualization & Hotspots Diagnostics</div>
+  <div class="header-container" style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 15px;">
+    <div>
+      <h1 style="margin: 0; font-size: 2rem;">NYC Airbnb Interactive Dashboard</h1>
+      <div class="subtitle" style="margin-top: 5px; color: var(--text-muted);">Data Visualization & Hotspots Diagnostics</div>
+    </div>
+    <div class="member-dashboards" style="display: flex; gap: 10px;">
+      <a href="index.html" style="padding: 8px 16px; background: #ff5a5f; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 0.9rem; transition: background 0.2s;">Domain Task 1 & 2 (22120230)</a>
+      <a href="index_Nam.html" style="padding: 8px 16px; background: var(--panel-bg); color: var(--text-main); text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 0.9rem; transition: all 0.2s; border: 1px solid var(--border);">Dashboard Nam</a>
+      <a href="index_Phuc.html" style="padding: 8px 16px; background: var(--panel-bg); color: var(--text-main); text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 0.9rem; transition: all 0.2s; border: 1px solid var(--border);">Dashboard Phúc</a>
+    </div>
+  </div>
+
+  <!-- DOMAIN DESCRIPTION -->
+  <div class="domain-description" style="background: var(--panel-bg); border: 1px solid var(--border); border-radius: 8px; padding: 15px 20px; margin-bottom: 20px; font-size: 0.95rem; line-height: 1.6; color: var(--text-main);">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+      <div>
+        <strong style="color: #ff5a5f; font-size: 1rem; display: block; margin-bottom: 6px;">Nhóm 1: Phân tích Tổng quan Thị trường</strong>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li>Thống kê các chỉ số chính (KPIs): Tổng lượng phòng, giá thuê trung bình, tổng lượt đánh giá.</li>
+          <li>Phân bổ phòng theo đơn vị hành chính (Boroughs/Neighbourhoods).</li>
+          <li>Cơ cấu loại hình lưu trú (Room type).</li>
+        </ul>
+      </div>
+      <div>
+        <strong style="color: #ff5a5f; font-size: 1rem; display: block; margin-bottom: 6px;">Nhóm 2: Phân tích Không gian (Geospatial Analysis)</strong>
+        <ul style="margin: 0; padding-left: 20px;">
+          <li>Trực quan hóa bản đồ giá thuê theo khu vực.</li>
+          <li>Phân tích mật độ phân bố và điểm nóng về hoạt động lưu trú.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
 
   <!-- TABS -->
   <div class="tabs">
@@ -571,8 +601,18 @@
       document.getElementById('kpi-total-reviews').innerText = totalReviews.toLocaleString();
 
       // Draw Charts
-      drawBarChart(filtered);
-      drawDonutChart(filtered);
+      let barData = rawDT1;
+      if (f_roomtype !== 'ALL') {
+        barData = barData.filter(d => d.room_type === f_roomtype);
+      }
+      drawBarChart(barData);
+
+      let donutData = rawDT1;
+      if (f_borough !== 'ALL') {
+        donutData = donutData.filter(d => d.borough === f_borough);
+      }
+      drawDonutChart(donutData);
+
       renderDT1Table(filtered);
 
       // Update titles
@@ -581,6 +621,7 @@
     }
 
     function drawBarChart(data) {
+      const f_borough = document.getElementById('dt1-borough').value;
       const agg = d3.rollups(data, v => d3.sum(v, d => d.count), d => d.borough)
         .map(d => ({ borough: d[0], count: d[1] }))
         .sort((a, b) => b.count - a.count);
@@ -615,20 +656,32 @@
         .attr("y", d => y(d.count))
         .attr("height", d => height - y(d.count))
         .attr("fill", d => colorPalette[d.borough] || "#999")
+        .style("cursor", "pointer")
+        .attr("opacity", d => (f_borough === 'ALL' || d.borough === f_borough) ? 1.0 : 0.4)
         .on("mouseover", function (event, d) {
           tooltip.transition().duration(200).style("opacity", .9);
           tooltip.html(`<strong>${d.borough}</strong><br/>Count: ${d.count.toLocaleString()}`)
             .style("left", (event.pageX + 10) + "px")
             .style("top", (event.pageY - 28) + "px");
-          d3.select(this).attr("opacity", 0.7);
+          d3.select(this).attr("opacity", 0.8);
         })
-        .on("mouseout", function (d) {
+        .on("mouseout", function (event, d) {
           tooltip.transition().duration(500).style("opacity", 0);
-          d3.select(this).attr("opacity", 1);
+          d3.select(this).attr("opacity", (f_borough === 'ALL' || d.borough === f_borough) ? 1.0 : 0.4);
+        })
+        .on("click", function (event, d) {
+          const select = document.getElementById("dt1-borough");
+          if (select.value === d.borough) {
+            select.value = "ALL";
+          } else {
+            select.value = d.borough;
+          }
+          filterDT1();
         });
     }
 
     function drawDonutChart(data) {
+      const f_roomtype = document.getElementById('dt1-roomtype').value;
       const agg = d3.rollups(data, v => d3.sum(v, d => d.count), d => d.room_type)
         .map(d => ({ room_type: d[0], count: d[1] }));
 
@@ -656,16 +709,27 @@
         .attr("fill", d => colorPalette[d.data.room_type] || "#999")
         .attr("stroke", "var(--panel-bg)")
         .style("stroke-width", "2px")
+        .style("cursor", "pointer")
+        .attr("opacity", d => (f_roomtype === 'ALL' || d.data.room_type === f_roomtype) ? 1.0 : 0.4)
         .on("mouseover", function (event, d) {
           tooltip.transition().duration(200).style("opacity", .9);
           tooltip.html(`<strong>${d.data.room_type}</strong><br/>Count: ${d.data.count.toLocaleString()}`)
             .style("left", (event.pageX + 10) + "px")
             .style("top", (event.pageY - 28) + "px");
-          d3.select(this).attr("opacity", 0.7);
+          d3.select(this).attr("opacity", 0.8);
         })
-        .on("mouseout", function (d) {
+        .on("mouseout", function (event, d) {
           tooltip.transition().duration(500).style("opacity", 0);
-          d3.select(this).attr("opacity", 1);
+          d3.select(this).attr("opacity", (f_roomtype === 'ALL' || d.data.room_type === f_roomtype) ? 1.0 : 0.4);
+        })
+        .on("click", function (event, d) {
+          const select = document.getElementById("dt1-roomtype");
+          if (select.value === d.data.room_type) {
+            select.value = "ALL";
+          } else {
+            select.value = d.data.room_type;
+          }
+          filterDT1();
         });
     }
 
