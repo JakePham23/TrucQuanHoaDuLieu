@@ -3,9 +3,9 @@ import json
 from datetime import datetime
 
 # Đọc dữ liệu
-listings = pd.read_csv('listings.csv')
-calendar = pd.read_csv('calendar.csv')
-reviews = pd.read_csv('reviews.csv')
+listings = pd.read_csv('Cleaned /listings_clean.csv')
+calendar = pd.read_csv('Cleaned /calendar_clean.csv')
+reviews = pd.read_csv('Cleaned /reviews_clean.csv')
 
 # ===== KPI =====
 total_listings = len(listings)
@@ -24,7 +24,7 @@ kpi = {
 }
 
 print("KPI:", kpi)
-with open('kpi.json', 'w') as f:
+with open('dashboard/kpi.json', 'w') as f:
     json.dump(kpi, f)
 
 # ===== Bubble Chart - Mật độ phân bổ theo room_type =====
@@ -38,7 +38,7 @@ room_type_dist = room_type_dist.fillna(0)
 bubble_data = room_type_dist.to_dict('records')
 
 print("Bubble data sample:", bubble_data[:2])
-with open('bubble_data.json', 'w') as f:
+with open('dashboard/bubble_data.json', 'w') as f:
     json.dump(bubble_data, f)
 
 # ===== Treemap Data - Vùng + Loại phòng =====
@@ -67,7 +67,7 @@ hierarchical_data = {
 }
 
 print("Treemap data regions:", list(regions.keys()))
-with open('treemap_data.json', 'w') as f:
+with open('dashboard/treemap_data.json', 'w') as f:
     json.dump(hierarchical_data, f)
 
 # ===== Bar Chart - Giá trung bình theo vùng =====
@@ -80,7 +80,7 @@ neighborhood_prices = neighborhood_prices.sort_values('avg_price', ascending=Fal
 bar_data = neighborhood_prices.to_dict('records')
 
 print("Bar data:", bar_data)
-with open('bar_data.json', 'w') as f:
+with open('dashboard/bar_data.json', 'w') as f:
     json.dump(bar_data, f)
 
 # ===== Line Chart - Tốc độ tăng trưởng review theo thời gian và theo vùng =====
@@ -100,7 +100,7 @@ reviews_by_year_region = reviews_with_region.groupby(['year', 'neighbourhood_gro
 line_data = reviews_by_year_region.to_dict('records')
 
 print("Line data:", line_data[:5])
-with open('line_data.json', 'w') as f:
+with open('dashboard/line_data.json', 'w') as f:
     json.dump(line_data, f)
 
 # ===== Scatter Chart - Giá vs Điểm đánh giá =====
@@ -111,7 +111,7 @@ scatter_data = scatter_data.sample(min(5000, len(scatter_data)))  # Giới hạn
 scatter_json = scatter_data.to_dict('records')
 
 print(f"Scatter data points: {len(scatter_json)}")
-with open('scatter_data.json', 'w') as f:
+with open('dashboard/scatter_data.json', 'w') as f:
     json.dump(scatter_json, f)
 
 # ===== Featured Listings Display =====
@@ -125,7 +125,7 @@ featured_listings['review_scores_rating'] = featured_listings['review_scores_rat
 featured_listings = featured_listings.to_dict('records')
 
 print(f"Featured listings: {len(featured_listings)}")
-with open('listings_display.json', 'w') as f:
+with open('dashboard/listings_display.json', 'w') as f:
     json.dump(featured_listings, f)
 
 # ===== Recent Reviews List =====
@@ -135,7 +135,7 @@ reviews_list['review_date'] = reviews_list['review_date'].astype(str)
 reviews_list = reviews_list.to_dict('records')
 
 print(f"Reviews list: {len(reviews_list)}")
-with open('reviews_list.json', 'w') as f:
+with open('dashboard/reviews_list.json', 'w') as f:
     json.dump(reviews_list, f)
 
 print("✓ Tất cả dữ liệu đã được xử lý!")
