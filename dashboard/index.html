@@ -345,25 +345,46 @@
                 <option value="H">Hotel room</option>
             </select>
             
-            <label>Giá tối đa ($): <span id="price-val">1000</span></label>
-            <input type="range" id="filter-price" min="10" max="1000" step="10" value="1000" oninput="updatePriceLabel(); filterMap()">
+            <label>Giá tối đa ($): <span id="price-val">50138</span></label>
+            <input type="range" id="filter-price" min="9" max="50138" step="100" value="50138" oninput="updatePriceLabel(); filterMap()">
         </div>
 
         <div class="dashboard-grid">
             <!-- Bản đồ -->
             <div class="panel" style="grid-column: span 2;">
-                <h2>Bubble Map: Phân bổ điểm phòng theo giá & loại phòng</h2>
+                <h2>Choropleth Map: Bản đồ phân vùng nhiệt theo khu phố (Phường)</h2>
                 <div id="map">
                     <div class="map-legend">
-                        <h4>Loại phòng (Màu sắc)</h4>
-                        <div id="map-legend-content"></div>
-                        <h4 style="margin-top:15px;">Giá phòng (Kích thước)</h4>
-                        <div style="display:flex; align-items:center; gap:10px;">
-                            <div style="width:4px; height:4px; border-radius:50%; background:#333;"></div>
-                            <span style="font-size: 0.8rem;">Rẻ</span>
-                            <div style="flex-grow:1; border-bottom:1px dashed #ccc;"></div>
-                            <div style="width:20px; height:20px; border-radius:50%; background:#333;"></div>
-                            <span style="font-size: 0.8rem;">Đắt</span>
+                        <h4>Giá trung bình (AVG Price)</h4>
+                        <div style="display:flex; flex-direction:column; gap:5px; margin-top:8px;">
+                            <div class="legend-item">
+                                <div class="legend-color" style="background:#900c3f"></div>
+                                <span>&gt; $1,500 (Đắt đỏ)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background:#c70039"></div>
+                                <span>$800 - $1,500</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background:#ff5733"></div>
+                                <span>$400 - $800</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background:#ff8d1a"></div>
+                                <span>$250 - $400</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background:#ffc300"></div>
+                                <span>$150 - $250</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background:#ffd75e"></div>
+                                <span>$90 - $150</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background:#ffe8a3"></div>
+                                <span>&lt; $90 (Giá rẻ)</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -412,6 +433,7 @@
         let map;
         let mapLayerGroup;
         let rawDT2Bubble = [];
+        let geojsonFeatures;
 
         // --- RENDER LEGENDS ---
         function renderLegends() {
@@ -437,16 +459,6 @@
                         <span>${r}</span>
                     </div>`;
             });
-
-            // Map Legend
-            const mapLegend = document.getElementById('map-legend-content');
-            roomTypes.forEach(r => {
-                mapLegend.innerHTML += `
-                    <div class="legend-item" style="margin-bottom:5px;">
-                        <div class="legend-color" style="background:${colorPalette[r]}"></div>
-                        <span>${r}</span>
-                    </div>`;
-            });
         }
         renderLegends();
 
@@ -467,19 +479,18 @@
         Promise.all([
             d3.json("data/dt1_market_supply.json?t=" + new Date().getTime()),
             d3.json("data/dt2_bubble_map.json?t=" + new Date().getTime()),
-            d3.json("data/dt2_choropleth.json?t=" + new Date().getTime())
+            d3.json("neighbourhoods.geojson?t=" + new Date().getTime())
         ]).then(function(files) {
             rawDT1 = files[0];
             rawDT2Bubble = files[1];
-            const rawDT2Choro = files[2];
+            geojsonFeatures = files[2];
 
             // DT1 Init
             updateDT1();
 
             // DT2 Init
             initMap();
-            filterMap(); // draws initial points
-            renderDT2Table(rawDT2Choro);
+            filterMap(); // draws initial choropleth map and table
         });
 
         // ==========================================
@@ -658,51 +669,96 @@
             document.getElementById('price-val').innerText = document.getElementById('filter-price').value;
         }
 
+        function getColor(d) {
+            if (!d) return '#cbd5e0'; // Màu xám cho khu vực không có dữ liệu
+            return d > 1500 ? '#900c3f' : // Đỏ sẫm
+                   d > 800  ? '#c70039' : // Đỏ
+                   d > 400  ? '#ff5733' : // Đỏ cam
+                   d > 250  ? '#ff8d1a' : // Cam
+                   d > 150  ? '#ffc300' : // Vàng đậm (Gold)
+                   d > 90   ? '#ffd75e' : // Vàng trung bình
+                              '#ffe8a3';   // Vàng nhạt (Vàng cát)
+        }
+
         function filterMap() {
-            if(!mapLayerGroup) return;
+            if(!mapLayerGroup || !geojsonFeatures) return;
             mapLayerGroup.clearLayers(); 
 
             const roomTypeFilter = document.getElementById('filter-room-type').value; 
             const maxPrice = parseFloat(document.getElementById('filter-price').value);
 
-            const roomColors = {
-                'E': colorPalette['Entire home/apt'],
-                'P': colorPalette['Private room'],
-                'S': colorPalette['Shared room'],
-                'H': colorPalette['Hotel room']
-            };
-
-            const roomNames = {
-                'E': 'Entire home/apt',
-                'P': 'Private room',
-                'S': 'Shared room',
-                'H': 'Hotel room'
-            };
-
+            // Gom nhóm tính toán động giá trung bình theo phường
+            const hoodAgg = {};
             rawDT2Bubble.forEach(d => {
                 if (d.p > maxPrice) return;
                 if (roomTypeFilter !== 'ALL' && d.r !== roomTypeFilter) return;
-
-                let r = Math.sqrt(d.p) / 2;
-                if (r > 15) r = 15;
-                if (r < 2) r = 2;
+                if (!d.h) return;
                 
-                const marker = L.circleMarker([d.lt, d.lg], {
-                    radius: r,
-                    fillColor: roomColors[d.r] || '#fff',
-                    color: '#111',
-                    weight: 0.5,
-                    opacity: 1,
-                    fillOpacity: 0.7
-                });
-                
-                marker.bindTooltip(`
-                    <b>Loại phòng:</b> ${roomNames[d.r]}<br/>
-                    <b>Giá (Price):</b> $${d.p}
-                `);
-                
-                mapLayerGroup.addLayer(marker);
+                if (!hoodAgg[d.h]) {
+                    hoodAgg[d.h] = { sum: 0, count: 0 };
+                }
+                hoodAgg[d.h].sum += d.p;
+                hoodAgg[d.h].count += 1;
             });
+
+            // Vẽ ranh giới các phường (Choropleth Layer)
+            const geoJsonLayer = L.geoJson(geojsonFeatures, {
+                style: function(feature) {
+                    const hood = feature.properties.neighbourhood;
+                    const agg = hoodAgg[hood];
+                    const avgPrice = agg ? (agg.sum / agg.count) : null;
+                    return {
+                        fillColor: getColor(avgPrice),
+                        weight: 1,
+                        opacity: 0.8,
+                        color: 'var(--border)', // Màu viền nhẹ đồng bộ theme
+                        fillOpacity: 0.75
+                    };
+                },
+                onEachFeature: function(feature, layer) {
+                    const hood = feature.properties.neighbourhood;
+                    const agg = hoodAgg[hood];
+                    const avgPrice = agg ? Math.round(agg.sum / agg.count) : null;
+                    const count = agg ? agg.count : 0;
+                    
+                    let tooltipContent = `<b>Khu phố (Phường):</b> ${hood}<br/>`;
+                    if (avgPrice) {
+                        tooltipContent += `<b>Giá trung bình:</b> $${avgPrice.toLocaleString()}<br/>`;
+                        tooltipContent += `<b>Số lượng phòng:</b> ${count.toLocaleString()}`;
+                    } else {
+                        tooltipContent += `Không có dữ liệu phòng phù hợp`;
+                    }
+                    
+                    layer.bindTooltip(tooltipContent, { sticky: true });
+                    
+                    // Hiệu ứng di chuột vào/ra
+                    layer.on({
+                        mouseover: function(e) {
+                            var l = e.target;
+                            l.setStyle({
+                                fillOpacity: 0.9,
+                                weight: 2,
+                                color: '#ff5a5f' // Đổi viền sang màu cam Airbnb khi hover
+                            });
+                        },
+                        mouseout: function(e) {
+                            geoJsonLayer.resetStyle(e.target);
+                        }
+                    });
+                }
+            });
+            mapLayerGroup.addLayer(geoJsonLayer);
+
+            // Cấu trúc lại danh sách để hiển thị ra bảng bên dưới
+            const tableData = [];
+            for (let hood in hoodAgg) {
+                tableData.push({
+                    hood: hood,
+                    avg_price: Math.round(hoodAgg[hood].sum / hoodAgg[hood].count),
+                    count: hoodAgg[hood].count
+                });
+            }
+            renderDT2Table(tableData);
         }
 
         function renderDT2Table(choroData) {
