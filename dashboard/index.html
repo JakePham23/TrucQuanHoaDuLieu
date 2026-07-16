@@ -1,313 +1,816 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Airbnb NYC – Data Visualization Dashboard</title>
-  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Airbnb NYC Dashboard</title>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
   <style>
-    /* ── Global ── */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-dark: #f8f9fa;
+      --panel-bg: #ffffff;
+      --text-main: #2d3748;
+      --text-muted: #718096;
+      --accent: #ff5a5f;
+      --border: #e2e8f0;
+    }
+
     body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #0f1117;
-      color: #e0e0e0;
-      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
     }
 
-    /* ── Header ── */
-    header {
-      background: linear-gradient(135deg, #1a1d2e 0%, #252a40 100%);
-      padding: 18px 32px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid #2e3347;
+    h1 {
+      text-align: center;
+      margin-bottom: 5px;
+      color: var(--accent);
     }
-    header h1 { font-size: 1.4rem; color: #9fa8da; letter-spacing: 1px; }
-    header span { font-size: .8rem; color: #616880; }
 
-    /* ── Filter Bar ── */
-    #filter-bar {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      padding: 12px 32px;
-      background: #151821;
-      border-bottom: 1px solid #2e3347;
-      flex-wrap: wrap;
+    .subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      margin-bottom: 30px;
     }
-    #filter-bar label { font-size: .8rem; color: #9e9e9e; }
-    #filter-bar select, #filter-bar input[type=range] {
-      background: #1e2130;
-      color: #cdd;
-      border: 1px solid #3a3f58;
-      border-radius: 6px;
-      padding: 4px 10px;
-      font-size: .82rem;
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+      border-bottom: 2px solid var(--border);
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      padding: 10px 30px;
+      font-size: 1.1rem;
+      font-weight: 600;
       cursor: pointer;
+      transition: 0.2s;
     }
-    #price-val { font-size: .8rem; color: #9fa8da; min-width: 80px; }
 
-    /* ── Grid ── */
-    #grid {
+    .tab-btn:hover {
+      color: var(--text-main);
+    }
+
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom: 3px solid var(--accent);
+      margin-bottom: -2px;
+    }
+
+    .tab-content {
+      display: none;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Layout */
+    .dashboard-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
-      gap: 20px;
-      padding: 24px 32px;
+      grid-template-columns: 1fr 1fr;
+      grid-gap: 20px;
     }
 
-    /* ── Card ── */
-    .card {
-      background: #151821;
-      border: 1px solid #2e3347;
+    .panel {
+      background-color: var(--panel-bg);
       border-radius: 12px;
       padding: 20px;
-      transition: box-shadow .2s;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--border);
     }
-    .card:hover { box-shadow: 0 0 18px #3f51b540; }
-    .card h2 { font-size: .95rem; color: #9fa8da; margin-bottom: 4px; }
-    .card p.sub { font-size: .75rem; color: #555d7a; margin-bottom: 14px; }
 
-    /* ── SVG defaults ── */
-    .axis text { fill: #7a829e; font-size: 11px; }
-    .axis path, .axis line { stroke: #2e3347; }
-    .grid line { stroke: #232636; stroke-dasharray: 3,3; }
+    .panel-full {
+      grid-column: 1 / -1;
+    }
 
-    /* ── Tooltip ── */
-    #tooltip {
-      position: fixed;
-      background: #1e2130ee;
-      border: 1px solid #3a3f58;
+    .panel h2 {
+      margin-top: 0;
+      font-size: 1.2rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+    }
+
+    /* Charts & Map */
+    #bar-chart,
+    #donut-chart {
+      width: 100%;
+      height: 350px;
+    }
+
+    #map {
+      width: 100%;
+      height: 500px;
       border-radius: 8px;
-      padding: 8px 12px;
-      font-size: .8rem;
-      color: #cdd;
-      pointer-events: none;
-      display: none;
-      z-index: 99;
+      z-index: 1;
+      position: relative;
     }
 
-    /* ── Footer ── */
-    footer {
+    /* Tooltip */
+    .tooltip {
+      position: absolute;
+      text-align: left;
+      padding: 10px;
+      font-size: 13px;
+      background: rgba(0, 0, 0, 0.85);
+      color: #fff;
+      border-radius: 6px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+      border: 1px solid #444;
+      z-index: 1000;
+    }
+
+    /* Filters */
+    .filter-container {
+      background: #edf2f7;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    select,
+    input[type="range"] {
+      padding: 8px;
+      background: #ffffff;
+      color: var(--text-main);
+      border: 1px solid #cbd5e0;
+      border-radius: 4px;
+      outline: none;
+    }
+
+    .btn-reset {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      margin-left: auto;
+    }
+
+    .btn-reset:hover {
+      background: #ff757a;
+    }
+
+    /* Tables */
+    .table-container {
+      max-height: 400px;
+      overflow-y: auto;
+      margin-top: 15px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+
+    th,
+    td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      background-color: #edf2f7;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    tr:hover {
+      background-color: #f7fafc;
+    }
+
+    /* Legends */
+    .legend-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      padding-top: 10px;
+      justify-content: center;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+    }
+
+    .legend-color {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+    }
+
+    .map-legend {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 15px;
+      border-radius: 8px;
+      z-index: 1000;
+      border: 1px solid #e2e8f0;
+      color: var(--text-main);
+    }
+
+    .map-legend h4 {
+      margin: 0 0 10px 0;
+      font-size: 0.9rem;
+    }
+
+    /* KPIs styling */
+    .kpi-container {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .kpi-card {
+      background-color: var(--panel-bg);
+      border-radius: 12px;
+      padding: 15px 20px;
       text-align: center;
-      padding: 16px;
-      font-size: .72rem;
-      color: #3a3f58;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border);
+    }
+
+    .kpi-title {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 500;
+    }
+
+    .kpi-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-top: 5px;
     }
   </style>
 </head>
+
 <body>
 
-<header>
-  <h1>🏙️ Airbnb NYC – Dashboard</h1>
-  <span>Nguồn: Inside Airbnb · CSC10108 Data Visualization</span>
-</header>
+  <h1>NYC Airbnb Interactive Dashboard</h1>
+  <div class="subtitle">Data Visualization & Hotspots Diagnostics</div>
 
-<!-- ═══════════ SHARED FILTER ═══════════ -->
-<div id="filter-bar">
-  <label>Quận:</label>
-  <select id="sel-borough">
-    <option value="All">-- Tất cả --</option>
-  </select>
-
-  <label>Loại phòng:</label>
-  <select id="sel-type">
-    <option value="All">-- Tất cả --</option>
-  </select>
-
-  <label>Giá tối đa: </label>
-  <input type="range" id="sl-price" min="0" max="500" value="500" step="10"/>
-  <span id="price-val">≤ $500</span>
-</div>
-
-<div id="tooltip"></div>
-
-<!-- ═══════════ CHART GRID ═══════════ -->
-<div id="grid">
-
-  <!--  CARD 1 – Bar Chart  (mỗi thành viên thay nội dung này) -->
-  <div class="card" id="card-bar">
-    <h2>📊 Chart A – Bar (Sample)</h2>
-    <p class="sub">Giá thuê trung bình theo Quận NYC — Gợi ý: Thay thế bằng Task của bạn</p>
-    <svg id="svg-bar"></svg>
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('dt1')">Domain Task 1: Market Supply</button>
+    <button class="tab-btn" onclick="switchTab('dt2')">Domain Task 2: Geospatial Hotspots</button>
   </div>
 
-  <!--  CARD 2 – Scatter Plot  -->
-  <div class="card" id="card-scatter">
-    <h2>🔵 Chart B – Scatter (Sample)</h2>
-    <p class="sub">Giá so với số lượng Reviews — Gợi ý: Thay thế bằng Task của bạn</p>
-    <svg id="svg-scatter"></svg>
+  <!-- TAB 1: DOMAIN TASK 1 -->
+  <div id="tab-dt1" class="tab-content active">
+    <div class="filter-container">
+      <span style="font-weight: 600;">Bộ lọc dữ liệu:</span>
+
+      <label>Quận (Borough):</label>
+      <select id="dt1-borough" onchange="filterDT1()">
+        <option value="ALL">Tất cả (All)</option>
+        <option value="Manhattan">Manhattan</option>
+        <option value="Brooklyn">Brooklyn</option>
+        <option value="Queens">Queens</option>
+        <option value="Bronx">Bronx</option>
+        <option value="Staten Island">Staten Island</option>
+      </select>
+
+      <label>Loại phòng (Room Type):</label>
+      <select id="dt1-roomtype" onchange="filterDT1()">
+        <option value="ALL">Tất cả (All)</option>
+        <option value="Entire home/apt">Entire home/apt</option>
+        <option value="Private room">Private room</option>
+        <option value="Shared room">Shared room</option>
+        <option value="Hotel room">Hotel room</option>
+      </select>
+
+      <button class="btn-reset" onclick="resetDT1()">Reset Lọc</button>
+    </div>
+
+    <!-- KPI Row -->
+    <div class="kpi-container">
+      <div class="kpi-card">
+        <div class="kpi-title">Tổng số lượng phòng</div>
+        <div class="kpi-value" id="kpi-total-listings" style="color: var(--accent);">0</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-title">Giá thuê trung bình</div>
+        <div class="kpi-value" id="kpi-avg-price" style="color: #4caf50;">$0</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-title">Tổng lượt đánh giá</div>
+        <div class="kpi-value" id="kpi-total-reviews" style="color: #2196f3;">0</div>
+      </div>
+    </div>
+
+    <div class="dashboard-grid">
+      <div class="panel">
+        <h2 id="dt1-bar-title">Market Supply by Borough</h2>
+        <div id="bar-chart"></div>
+        <div class="legend-container" id="legend-bar"></div>
+      </div>
+      <div class="panel">
+        <h2 id="dt1-donut-title">Room Type Distribution</h2>
+        <div id="donut-chart"></div>
+        <div class="legend-container" id="legend-donut"></div>
+      </div>
+
+      <!-- Table for DT1 -->
+      <div class="panel panel-full">
+        <h2>Bảng dữ liệu: Chi tiết phân bổ nguồn cung</h2>
+        <div class="table-container">
+          <table id="dt1-table">
+            <thead>
+              <tr>
+                <th>Borough (Quận)</th>
+                <th>Room Type (Loại phòng)</th>
+                <th>Số lượng (Count)</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
 
-</div>
+  <!-- TAB 2: DOMAIN TASK 2 -->
+  <div id="tab-dt2" class="tab-content">
+    <div class="filter-container">
+      <span style="font-weight: 600;">Bộ lọc không gian:</span>
 
-<footer>CSC10108 · Trực Quan Hóa Dữ Liệu · 2025–2026</footer>
+      <label>Loại phòng:</label>
+      <select id="filter-room-type" onchange="filterMap()">
+        <option value="ALL">Tất cả (All)</option>
+        <option value="E">Entire home/apt</option>
+        <option value="P">Private room</option>
+        <option value="S">Shared room</option>
+        <option value="H">Hotel room</option>
+      </select>
 
-<script>
-// ════════════════════════════════════════
-//  CONFIG & HELPERS
-// ════════════════════════════════════════
-const COLOR = d3.scaleOrdinal()
-  .domain(['Manhattan','Brooklyn','Queens','Bronx','Staten Island'])
-  .range(['#7986cb','#4db6ac','#ffb74d','#f06292','#aed581']);  // Colorblind-safe ý, OK
+      <label>Giá tối đa ($): <span id="price-val">50138</span></label>
+      <input type="range" id="filter-price" min="9" max="50138" step="100" value="50138"
+        oninput="updatePriceLabel(); filterMap()">
+    </div>
 
-const tip = d3.select('#tooltip');
-function showTip(html, event) {
-  tip.style('display','block').html(html)
-     .style('left', (event.clientX + 14) + 'px')
-     .style('top',  (event.clientY - 28) + 'px');
-}
-function hideTip() { tip.style('display','none'); }
+    <div class="dashboard-grid">
+      <!-- Bản đồ -->
+      <div class="panel" style="grid-column: span 2;">
+        <h2>Choropleth Map: Bản đồ phân vùng nhiệt theo khu phố (Phường)</h2>
+        <div id="map">
+          <div class="map-legend">
+            <h4>Giá trung bình (AVG Price)</h4>
+            <div style="display:flex; flex-direction:column; gap:5px; margin-top:8px;">
+              <div class="legend-item">
+                <div class="legend-color" style="background:#900c3f"></div>
+                <span>&gt; $1,500 (Đắt đỏ)</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-color" style="background:#c70039"></div>
+                <span>$800 - $1,500</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-color" style="background:#ff5733"></div>
+                <span>$400 - $800</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-color" style="background:#ff8d1a"></div>
+                <span>$250 - $400</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-color" style="background:#ffc300"></div>
+                <span>$150 - $250</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-color" style="background:#ffd75e"></div>
+                <span>$90 - $150</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-color" style="background:#ffe8a3"></div>
+                <span>&lt; $90 (Giá rẻ)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-// ════════════════════════════════════════
-//  LOAD DATA – đọc Master CSV
-// ════════════════════════════════════════
-d3.csv('../dataset/listings_clean.csv', d => ({
-  borough : d.neighbourhood_group,
-  roomType: d.room_type,
-  price   : +d.price,
-  reviews : +d.number_of_reviews,
-  lat     : +d.latitude,
-  lng     : +d.longitude,
-})).then(raw => {
+      <!-- Table for DT2 -->
+      <div class="panel panel-full">
+        <h2>Bảng dữ liệu: Top khu phố đắt đỏ nhất (Neighborhood Average Price)</h2>
+        <div class="table-container">
+          <table id="dt2-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Neighbourhood (Khu phố)</th>
+                <th>Giá trung bình (AVG Price)</th>
+                <th>Số lượng phòng</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
 
-  // Populate filter dropdowns
-  const boroughs = ['All', ...new Set(raw.map(d=>d.borough).filter(Boolean).sort())];
-  const types    = ['All', ...new Set(raw.map(d=>d.roomType).filter(Boolean).sort())];
-  d3.select('#sel-borough').selectAll('option').data(boroughs).join('option')
-    .attr('value', d=>d).text(d=>d);
-  d3.select('#sel-type').selectAll('option').data(types).join('option')
-    .attr('value', d=>d).text(d=>d);
+  <!-- Scripts -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  // Re-draw on filter change
-  function filtered() {
-    const b = d3.select('#sel-borough').property('value');
-    const t = d3.select('#sel-type').property('value');
-    const p = +d3.select('#sl-price').property('value');
-    d3.select('#price-val').text(`≤ $${p}`);
-    return raw.filter(d =>
-      (b === 'All' || d.borough  === b) &&
-      (t === 'All' || d.roomType === t) &&
-      d.price > 0 && d.price <= p
-    );
-  }
+  <script>
+    // --- GLOBALS & CONFIG ---
+    const colorPalette = {
+      'Manhattan': '#4472c4',
+      'Brooklyn': '#ed7d31',
+      'Queens': '#a5a5a5',
+      'Bronx': '#ffc000',
+      'Staten Island': '#5b9bd5',
+      'Entire home/apt': '#ff5a5f', // Airbnb Red/Coral
+      'Private room': '#00a699',  // Teal
+      'Shared room': '#3b82f6',    // Blue
+      'Hotel room': '#f59e0b'      // Amber/Yellow
+    };
+    const tooltip = d3.select("body").append("div").attr("class", "tooltip");
 
-  function redraw() {
-    const data = filtered();
-    drawBar(data);
-    drawScatter(data);
-  }
+    let rawDT1 = [];
+    let map;
+    let mapLayerGroup;
+    let rawDT2Bubble = [];
+    let geojsonFeatures;
 
-  d3.selectAll('#sel-borough, #sel-type').on('change', redraw);
-  d3.select('#sl-price').on('input', redraw);
-  redraw();
+    // --- RENDER LEGENDS ---
+    function renderLegends() {
+      const boroughs = ['Manhattan', 'Brooklyn', 'Queens', 'Bronx', 'Staten Island'];
+      const roomTypes = ['Entire home/apt', 'Private room', 'Shared room', 'Hotel room'];
 
-}).catch(err => {
-  console.warn('Chưa có data:', err.message);
-  // Dùng data mẫu khi chưa có CSV
-  const sample = [
-    {borough:'Manhattan', roomType:'Entire home/apt', price:220, reviews:15},
-    {borough:'Brooklyn',  roomType:'Private room',    price:95,  reviews:42},
-    {borough:'Queens',    roomType:'Private room',    price:65,  reviews:88},
-    {borough:'Bronx',     roomType:'Shared room',     price:45,  reviews:10},
-    {borough:'Staten Island', roomType:'Entire home/apt', price:130, reviews:5},
-  ];
-  drawBar(sample);
-  drawScatter(sample);
-});
+      // DT1 Bar Legend
+      const barLegend = document.getElementById('legend-bar');
+      boroughs.forEach(b => {
+        barLegend.innerHTML += `
+                    <div class="legend-item">
+                        <div class="legend-color" style="background:${colorPalette[b]}"></div>
+                        <span>${b}</span>
+                    </div>`;
+      });
 
-// ════════════════════════════════════════
-//  CHART A – BAR CHART
-// ════════════════════════════════════════
-function drawBar(data) {
-  const card = document.getElementById('card-bar');
-  const W = card.clientWidth - 40, H = 280;
-  const margin = {top:10, right:20, bottom:60, left:60};
-  const w = W - margin.left - margin.right;
-  const h = H - margin.top  - margin.bottom;
+      // DT1 Donut Legend
+      const donutLegend = document.getElementById('legend-donut');
+      roomTypes.forEach(r => {
+        donutLegend.innerHTML += `
+                    <div class="legend-item">
+                        <div class="legend-color" style="background:${colorPalette[r]}"></div>
+                        <span>${r}</span>
+                    </div>`;
+      });
+    }
+    renderLegends();
 
-  // Aggregate: giá trung bình theo borough
-  const rolled = d3.rollups(data, v => d3.mean(v, d => d.price), d => d.borough)
-    .map(([k,v]) => ({borough:k, avg:v}))
-    .sort((a,b) => b.avg - a.avg);
+    // --- TAB SWITCHING ---
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
 
-  const svg = d3.select('#svg-bar').attr('width', W).attr('height', H);
-  svg.selectAll('*').remove();
-  const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+      event.target.classList.add('active');
+      document.getElementById('tab-' + tabId).classList.add('active');
 
-  const x = d3.scaleBand().domain(rolled.map(d=>d.borough)).range([0,w]).padding(.35);
-  const y = d3.scaleLinear().domain([0, d3.max(rolled, d=>d.avg)*1.1]).range([h,0]);
+      if (tabId === 'dt2' && map) {
+        map.invalidateSize(); // Fix leafet map display issue inside hidden tabs
+      }
+    }
 
-  // Grid
-  g.append('g').attr('class','grid')
-   .call(d3.axisLeft(y).tickSize(-w).tickFormat(''));
+    // --- LOAD DATA ---
+    Promise.all([
+      d3.json("data/dt1_market_supply.json?t=" + new Date().getTime()),
+      d3.json("data/dt2_bubble_map.json?t=" + new Date().getTime()),
+      d3.json("neighbourhoods.geojson?t=" + new Date().getTime())
+    ]).then(function (files) {
+      rawDT1 = files[0];
+      rawDT2Bubble = files[1];
+      geojsonFeatures = files[2];
 
-  // Bars
-  g.selectAll('rect').data(rolled).join('rect')
-    .attr('x', d => x(d.borough))
-    .attr('y', d => y(d.avg))
-    .attr('width', x.bandwidth())
-    .attr('height', d => h - y(d.avg))
-    .attr('rx', 5)
-    .attr('fill', d => COLOR(d.borough))
-    .on('mouseover', (event, d) =>
-      showTip(`<b>${d.borough}</b><br/>Avg Price: <b>$${d.avg.toFixed(0)}</b>`, event))
-    .on('mousemove', (event, d) =>
-      showTip(`<b>${d.borough}</b><br/>Avg Price: <b>$${d.avg.toFixed(0)}</b>`, event))
-    .on('mouseout', hideTip);
+      // DT1 Init
+      updateDT1();
 
-  // Axes
-  g.append('g').attr('class','axis').attr('transform',`translate(0,${h})`).call(d3.axisBottom(x))
-   .selectAll('text').attr('transform','rotate(-20)').style('text-anchor','end');
-  g.append('g').attr('class','axis').call(d3.axisLeft(y).ticks(5).tickFormat(d=>`$${d}`));
-}
+      // DT2 Init
+      initMap();
+      filterMap(); // draws initial choropleth map and table
+    });
 
-// ════════════════════════════════════════
-//  CHART B – SCATTER PLOT
-// ════════════════════════════════════════
-function drawScatter(data) {
-  const card = document.getElementById('card-scatter');
-  const W = card.clientWidth - 40, H = 280;
-  const margin = {top:10, right:20, bottom:50, left:60};
-  const w = W - margin.left - margin.right;
-  const h = H - margin.top  - margin.bottom;
+    // ==========================================
+    // DOMAIN TASK 1 LOGIC
+    // ==========================================
+    function resetDT1() {
+      document.getElementById('dt1-borough').value = 'ALL';
+      document.getElementById('dt1-roomtype').value = 'ALL';
+      updateDT1();
+    }
 
-  // Lấy tối đa 600 điểm để không lag
-  const sample = data.length > 600 ? d3.shuffle([...data]).slice(0,600) : data;
+    function filterDT1() {
+      updateDT1();
+    }
 
-  const svg = d3.select('#svg-scatter').attr('width', W).attr('height', H);
-  svg.selectAll('*').remove();
-  const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+    function updateDT1() {
+      const f_borough = document.getElementById('dt1-borough').value;
+      const f_roomtype = document.getElementById('dt1-roomtype').value;
 
-  const x = d3.scaleLinear().domain([0, d3.max(sample, d=>d.reviews)*1.05]).range([0,w]);
-  const y = d3.scaleLinear().domain([0, d3.max(sample, d=>d.price )*1.05]).range([h,0]);
+      // Apply Filters
+      let filtered = rawDT1;
+      if (f_borough !== 'ALL') {
+        filtered = filtered.filter(d => d.borough === f_borough);
+      }
+      if (f_roomtype !== 'ALL') {
+        filtered = filtered.filter(d => d.room_type === f_roomtype);
+      }
 
-  // Grid
-  g.append('g').attr('class','grid').call(d3.axisLeft(y).tickSize(-w).tickFormat(''));
+      // Tính toán KPIs động
+      let totalListings = 0;
+      let totalPriceSum = 0;
+      let totalCountPrice = 0;
+      let totalReviews = 0;
 
-  // Dots
-  g.selectAll('circle').data(sample).join('circle')
-    .attr('cx', d => x(d.reviews))
-    .attr('cy', d => y(d.price))
-    .attr('r', 4).attr('opacity', .65)
-    .attr('fill', d => COLOR(d.borough))
-    .on('mouseover', (event, d) =>
-      showTip(`<b>${d.borough}</b><br/>Price: $${d.price} | Reviews: ${d.reviews}`, event))
-    .on('mousemove', (event, d) =>
-      showTip(`<b>${d.borough}</b><br/>Price: $${d.price} | Reviews: ${d.reviews}`, event))
-    .on('mouseout', hideTip);
+      filtered.forEach(d => {
+        totalListings += d.count || 0;
+        totalPriceSum += d.sum_price || 0;
+        totalCountPrice += d.count_price || 0;
+        totalReviews += d.sum_reviews || 0;
+      });
 
-  // Axes
-  g.append('g').attr('class','axis').attr('transform',`translate(0,${h})`).call(d3.axisBottom(x).ticks(5));
-  g.append('g').attr('class','axis').call(d3.axisLeft(y).ticks(5).tickFormat(d=>`$${d}`));
+      const avgPrice = totalCountPrice > 0 ? (totalPriceSum / totalCountPrice) : 0;
 
-  // Labels
-  g.append('text').attr('x',w/2).attr('y',h+40).attr('text-anchor','middle')
-   .attr('fill','#555d7a').attr('font-size',11).text('Số lượng Reviews');
-  g.append('text').attr('transform','rotate(-90)').attr('x',-h/2).attr('y',-45)
-   .attr('text-anchor','middle').attr('fill','#555d7a').attr('font-size',11).text('Giá / đêm ($)');
-}
-</script>
+      document.getElementById('kpi-total-listings').innerText = totalListings.toLocaleString();
+      document.getElementById('kpi-avg-price').innerText = '$' + avgPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      document.getElementById('kpi-total-reviews').innerText = totalReviews.toLocaleString();
+
+      // Draw Charts
+      drawBarChart(filtered);
+      drawDonutChart(filtered);
+      renderDT1Table(filtered);
+
+      // Update titles
+      document.getElementById('dt1-bar-title').innerText = f_roomtype !== 'ALL' ? `Market Supply (Lọc: ${f_roomtype})` : `Market Supply by Borough`;
+      document.getElementById('dt1-donut-title').innerText = f_borough !== 'ALL' ? `Room Type (Lọc: ${f_borough})` : `Room Type Distribution`;
+    }
+
+    function drawBarChart(data) {
+      const agg = d3.rollups(data, v => d3.sum(v, d => d.count), d => d.borough)
+        .map(d => ({ borough: d[0], count: d[1] }))
+        .sort((a, b) => b.count - a.count);
+
+      const margin = { top: 20, right: 20, bottom: 40, left: 60 };
+      const width = document.getElementById('bar-chart').clientWidth - margin.left - margin.right;
+      const height = 350 - margin.top - margin.bottom;
+
+      d3.select("#bar-chart").html("");
+      if (agg.length === 0) return;
+
+      const svg = d3.select("#bar-chart").append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+      const x = d3.scaleBand().range([0, width]).domain(agg.map(d => d.borough)).padding(0.2);
+      svg.append("g").attr("transform", `translate(0,${height})`).call(d3.axisBottom(x))
+        .selectAll("text").style("fill", "var(--text-main)").style("font-size", "11px");
+
+      const maxCount = d3.max(agg, d => d.count) || 10;
+      const y = d3.scaleLinear().domain([0, maxCount]).range([height, 0]);
+      svg.append("g").call(d3.axisLeft(y).ticks(5)).selectAll("text").style("fill", "var(--text-main)");
+
+      svg.selectAll(".bar")
+        .data(agg)
+        .join("rect")
+        .attr("class", "bar")
+        .attr("x", d => x(d.borough))
+        .attr("width", x.bandwidth())
+        .attr("y", d => y(d.count))
+        .attr("height", d => height - y(d.count))
+        .attr("fill", d => colorPalette[d.borough] || "#999")
+        .on("mouseover", function (event, d) {
+          tooltip.transition().duration(200).style("opacity", .9);
+          tooltip.html(`<strong>${d.borough}</strong><br/>Count: ${d.count.toLocaleString()}`)
+            .style("left", (event.pageX + 10) + "px")
+            .style("top", (event.pageY - 28) + "px");
+          d3.select(this).attr("opacity", 0.7);
+        })
+        .on("mouseout", function (d) {
+          tooltip.transition().duration(500).style("opacity", 0);
+          d3.select(this).attr("opacity", 1);
+        });
+    }
+
+    function drawDonutChart(data) {
+      const agg = d3.rollups(data, v => d3.sum(v, d => d.count), d => d.room_type)
+        .map(d => ({ room_type: d[0], count: d[1] }));
+
+      const width = document.getElementById('donut-chart').clientWidth;
+      const height = 350;
+      const radius = Math.min(width, height) / 2 - 20;
+
+      d3.select("#donut-chart").html("");
+      if (agg.length === 0) return;
+
+      const svg = d3.select("#donut-chart").append("svg")
+        .attr("width", width)
+        .attr("height", height)
+        .append("g")
+        .attr("transform", `translate(${width / 2},${height / 2})`);
+
+      const pie = d3.pie().value(d => d.count).sort(null);
+      const data_ready = pie(agg);
+      const arc = d3.arc().innerRadius(radius * 0.5).outerRadius(radius * 0.8);
+
+      svg.selectAll("allSlices")
+        .data(data_ready)
+        .join("path")
+        .attr("d", arc)
+        .attr("fill", d => colorPalette[d.data.room_type] || "#999")
+        .attr("stroke", "var(--panel-bg)")
+        .style("stroke-width", "2px")
+        .on("mouseover", function (event, d) {
+          tooltip.transition().duration(200).style("opacity", .9);
+          tooltip.html(`<strong>${d.data.room_type}</strong><br/>Count: ${d.data.count.toLocaleString()}`)
+            .style("left", (event.pageX + 10) + "px")
+            .style("top", (event.pageY - 28) + "px");
+          d3.select(this).attr("opacity", 0.7);
+        })
+        .on("mouseout", function (d) {
+          tooltip.transition().duration(500).style("opacity", 0);
+          d3.select(this).attr("opacity", 1);
+        });
+    }
+
+    function renderDT1Table(data) {
+      const tbody = document.querySelector('#dt1-table tbody');
+      tbody.innerHTML = '';
+      const sorted = [...data].sort((a, b) => b.count - a.count);
+      sorted.forEach(d => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+                    <td><span style="color:${colorPalette[d.borough]}; font-weight:bold;">${d.borough}</span></td>
+                    <td>${d.room_type}</td>
+                    <td>${d.count.toLocaleString()}</td>
+                `;
+        tbody.appendChild(tr);
+      });
+    }
+
+
+    // ==========================================
+    // DOMAIN TASK 2 LOGIC
+    // ==========================================
+    function initMap() {
+      map = L.map('map').setView([40.730610, -73.935242], 11);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+        maxZoom: 18
+      }).addTo(map);
+      mapLayerGroup = L.layerGroup().addTo(map);
+    }
+
+    function updatePriceLabel() {
+      document.getElementById('price-val').innerText = document.getElementById('filter-price').value;
+    }
+
+    function getColor(d) {
+      if (!d) return '#cbd5e0'; // Màu xám cho khu vực không có dữ liệu
+      return d > 1500 ? '#900c3f' : // Đỏ sẫm
+        d > 800 ? '#c70039' : // Đỏ
+          d > 400 ? '#ff5733' : // Đỏ cam
+            d > 250 ? '#ff8d1a' : // Cam
+              d > 150 ? '#ffc300' : // Vàng đậm (Gold)
+                d > 90 ? '#ffd75e' : // Vàng trung bình
+                  '#ffe8a3';   // Vàng nhạt (Vàng cát)
+    }
+
+    function filterMap() {
+      if (!mapLayerGroup || !geojsonFeatures) return;
+      mapLayerGroup.clearLayers();
+
+      const roomTypeFilter = document.getElementById('filter-room-type').value;
+      const maxPrice = parseFloat(document.getElementById('filter-price').value);
+
+      // Gom nhóm tính toán động giá trung bình theo phường
+      const hoodAgg = {};
+      rawDT2Bubble.forEach(d => {
+        if (d.p > maxPrice) return;
+        if (roomTypeFilter !== 'ALL' && d.r !== roomTypeFilter) return;
+        if (!d.h) return;
+
+        if (!hoodAgg[d.h]) {
+          hoodAgg[d.h] = { sum: 0, count: 0 };
+        }
+        hoodAgg[d.h].sum += d.p;
+        hoodAgg[d.h].count += 1;
+      });
+
+      // Vẽ ranh giới các phường (Choropleth Layer)
+      const geoJsonLayer = L.geoJson(geojsonFeatures, {
+        style: function (feature) {
+          const hood = feature.properties.neighbourhood;
+          const agg = hoodAgg[hood];
+          const avgPrice = agg ? (agg.sum / agg.count) : null;
+          return {
+            fillColor: getColor(avgPrice),
+            weight: 1,
+            opacity: 0.8,
+            color: 'var(--border)', // Màu viền nhẹ đồng bộ theme
+            fillOpacity: 0.75
+          };
+        },
+        onEachFeature: function (feature, layer) {
+          const hood = feature.properties.neighbourhood;
+          const agg = hoodAgg[hood];
+          const avgPrice = agg ? Math.round(agg.sum / agg.count) : null;
+          const count = agg ? agg.count : 0;
+
+          let tooltipContent = `<b>Khu phố (Phường):</b> ${hood}<br/>`;
+          if (avgPrice) {
+            tooltipContent += `<b>Giá trung bình:</b> $${avgPrice.toLocaleString()}<br/>`;
+            tooltipContent += `<b>Số lượng phòng:</b> ${count.toLocaleString()}`;
+          } else {
+            tooltipContent += `Không có dữ liệu phòng phù hợp`;
+          }
+
+          layer.bindTooltip(tooltipContent, { sticky: true });
+
+          // Hiệu ứng di chuột vào/ra
+          layer.on({
+            mouseover: function (e) {
+              var l = e.target;
+              l.setStyle({
+                fillOpacity: 0.9,
+                weight: 2,
+                color: '#ff5a5f' // Đổi viền sang màu cam Airbnb khi hover
+              });
+            },
+            mouseout: function (e) {
+              geoJsonLayer.resetStyle(e.target);
+            }
+          });
+        }
+      });
+      mapLayerGroup.addLayer(geoJsonLayer);
+
+      // Cấu trúc lại danh sách để hiển thị ra bảng bên dưới
+      const tableData = [];
+      for (let hood in hoodAgg) {
+        tableData.push({
+          hood: hood,
+          avg_price: Math.round(hoodAgg[hood].sum / hoodAgg[hood].count),
+          count: hoodAgg[hood].count
+        });
+      }
+      renderDT2Table(tableData);
+    }
+
+    function renderDT2Table(choroData) {
+      const tbody = document.querySelector('#dt2-table tbody');
+      tbody.innerHTML = '';
+      const sorted = [...choroData].sort((a, b) => b.avg_price - a.avg_price);
+      sorted.forEach((d, i) => {
+        const tr = document.createElement('tr');
+        let color = i < 10 ? '#ff5a5f' : 'var(--text-main)';
+        tr.innerHTML = `
+                    <td style="color:${color}; font-weight:bold;">${i + 1}</td>
+                    <td>${d.hood}</td>
+                    <td style="color:${color};">$${d.avg_price.toLocaleString()}</td>
+                    <td>${d.count.toLocaleString()}</td>
+                `;
+        tbody.appendChild(tr);
+      });
+    }
+
+  </script>
 </body>
+
 </html>

@@ -1,5 +1,6 @@
 src/
 .venv/
+input
 slide/
 dataset/
 .DS_Store
@@ -13,3 +14,4 @@ Bao_Cao*
 *.pdf
 *.docx
 Giai_Thich*
+Exersice/
