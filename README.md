@@ -13,7 +13,7 @@ Báo cáo phân tích và trực quan hóa dữ liệu thị trường lưu trú
    - Trực quan hóa Mật độ phòng (Density Grid), Treemap phân bổ và Ảnh hưởng của Tiện ích lên giá thuê (Amenity Uplift).
 3. **Hoàng Minh Phúc** - Phụ trách Dashboard Phúc (`index_Phuc.html`):
    - Phân tích tương quan định giá và hiệu suất kinh doanh phòng (Borough x Room Type).
-4. **Lê Trọng Nghĩa** - Phụ trách Dashboard Lê Nghĩa (index_Nghia.html):
+4. **Lê Trọng Nghĩa (MSSV: 22120226)** - Phụ trách Dashboard Lê Nghĩa (index_Nghia.html):
    - Phân tích mật độ phân bổ thị phần.
    - Mức giá trung bình theo vùng 
    - Phân tích tốc độ tăng trưởng reivew theo thời gian
@@ -21,8 +21,7 @@ Báo cáo phân tích và trực quan hóa dữ liệu thị trường lưu trú
 
 ---
 
-## 🚀 Hướng Dẫn Chạy Dashboard (Local Execution)
-
+## Hướng Dẫn Chạy Dashboard
 Dự án sử dụng Python làm Web Server cục bộ phục vụ các file HTML tĩnh chứa biểu đồ tương tác D3.js.
 
 ### Bước 1: Cài đặt thư viện cần thiết
