@@ -46,20 +46,3 @@ Mở trình duyệt bất kỳ (Chrome, Brave, Safari...) và truy cập địa 
 * Click nút **Dashboard Phúc** để xem phân tích tương quan định giá.
 
 ---
-
-## 🛠️ Các Công Cụ Tiền Xử Lý Dữ Liệu (Data Tooling)
-
-Trong thư mục `tool/` chứa các script Python giúp tiền xử lý và trích xuất dữ liệu từ tập dữ liệu thô ban đầu:
-* `prepare_dashboard_data.py`: Trích xuất file `listings_dash.csv` cho Dashboard của Phúc.
-* `prepare_data_Nam.py`: Tính toán Amenity Uplift, cụm mật độ bản đồ và chèn trực tiếp JSON vào `index_Nam.html`.
-* `data_profiling.py`: Chạy phân tích chất lượng dữ liệu thô (Data Profiling).
-
----
-
-## 📅 Lộ Trình Triển Khai Trọng Tâm (6 Tuần)
-- **(Profiling):** Khởi tạo Repo. Thống nhất làm sạch Master Data (Xóa Null, xóa Price <=0, chuẩn hóa ngày tháng `YYYY-MM-DD`). 
-- **(Abstraction):** Bám sát dữ liệu sạch, mỗi người định nghĩa Data Type (Categorical, Quantitative...) cho các cột mình dùng.
-- **(Task Abstraction):** Mỗi người chốt 2 câu `Action` + `Target` tương ứng với 2 domain task của mình.
-- **(Idiom):** Phác thảo biểu đồ. Trưởng nhóm quy định bảng màu chung.
-- **(Code & Merge):** Mỗi người tự code file biểu đồ riêng. Cuối tuần đẩy tất cả vào chung 1 file Dashboard.
-- **(Evaluation):** Rà soát tốc độ Load, độ thân thiện UI. Tự ráp Word báo cáo & Nộp bài. 
