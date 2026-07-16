@@ -264,7 +264,10 @@ class DataProfiler:
                     v = re.sub(r'[A-Za-z]', 's', v)
                     v = re.sub(r'[0-9]', 'd', v)
                     return v
-                pattern_counts = actual_data.apply(get_pattern).value_counts(normalize=True).head(5)
+                # .apply() là row-wise Python -> lấy sample cho cột hàng triệu dòng
+                # (vd calendar.csv 13M dòng) để tránh treo máy, vẫn đại diện thống kê.
+                pattern_source = actual_data if len(actual_data) <= 5000 else actual_data.sample(5000, random_state=0)
+                pattern_counts = pattern_source.apply(get_pattern).value_counts(normalize=True).head(5)
                 patterns = [f"{idx}: {val:.1%}" for idx, val in pattern_counts.items()]
 
             outliers = []

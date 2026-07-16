@@ -1,312 +1,1003 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Airbnb NYC – Data Visualization Dashboard</title>
-  <script src="https://d3js.org/d3.v7.min.js"></script>
-  <style>
-    /* ── Global ── */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #0f1117;
-      color: #e0e0e0;
-      min-height: 100vh;
-    }
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Airbnb NYC — Bảng phân tích Định giá</title>
+<script src="lib/d3.v7.min.js"></script>
+<style>
+:root{
+  --base:#e9edf4;
+  --ink:#141a22;
+  --ink-2:#48566a;
+  --ink-3:#7b8798;
+  --line:#dfe5ee;
+  --line-2:#eef1f6;
+  --card:#ffffff;
+  --plot:#ffffff;
+  --accent:#2f4a86;
 
-    /* ── Header ── */
-    header {
-      background: linear-gradient(135deg, #1a1d2e 0%, #252a40 100%);
-      padding: 18px 32px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid #2e3347;
-    }
-    header h1 { font-size: 1.4rem; color: #9fa8da; letter-spacing: 1px; }
-    header span { font-size: .8rem; color: #616880; }
+  --c-entire:#4269d0;
+  --c-private:#efb118;
+  --c-hotel:#ff725c;
+  --c-shared:#3ca39b;
 
-    /* ── Filter Bar ── */
-    #filter-bar {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      padding: 12px 32px;
-      background: #151821;
-      border-bottom: 1px solid #2e3347;
-      flex-wrap: wrap;
-    }
-    #filter-bar label { font-size: .8rem; color: #9e9e9e; }
-    #filter-bar select, #filter-bar input[type=range] {
-      background: #1e2130;
-      color: #cdd;
-      border: 1px solid #3a3f58;
-      border-radius: 6px;
-      padding: 4px 10px;
-      font-size: .82rem;
-      cursor: pointer;
-    }
-    #price-val { font-size: .8rem; color: #9fa8da; min-width: 80px; }
+  --r:14px;
+  --shadow:0 1px 2px rgba(20,26,34,.05), 0 4px 12px rgba(20,26,34,.05), 0 12px 28px -12px rgba(20,26,34,.14);
+  --shadow-lift:0 1px 2px rgba(20,26,34,.06), 0 8px 20px rgba(20,26,34,.08), 0 20px 44px -16px rgba(20,26,34,.20);
+  --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+  --mono:'SFMono-Regular',ui-monospace,'JetBrains Mono',Consolas,monospace;
+}
 
-    /* ── Grid ── */
-    #grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
-      gap: 20px;
-      padding: 24px 32px;
-    }
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
 
-    /* ── Card ── */
-    .card {
-      background: #151821;
-      border: 1px solid #2e3347;
-      border-radius: 12px;
-      padding: 20px;
-      transition: box-shadow .2s;
-    }
-    .card:hover { box-shadow: 0 0 18px #3f51b540; }
-    .card h2 { font-size: .95rem; color: #9fa8da; margin-bottom: 4px; }
-    .card p.sub { font-size: .75rem; color: #555d7a; margin-bottom: 14px; }
+body{
+  font-family:var(--font);
+  color:var(--ink);
+  background-color:var(--base);
+  background-image:
+    radial-gradient(1000px 680px at 4% -8%,  rgba(66,105,208,.13), transparent 62%),
+    radial-gradient(820px 560px at 101% -4%, rgba(60,163,155,.12), transparent 58%),
+    radial-gradient(760px 620px at 46% 112%, rgba(239,177,24,.09), transparent 62%),
+    radial-gradient(900px 700px at 88% 96%,  rgba(90,110,150,.08), transparent 60%);
+  background-attachment:fixed;
+  -webkit-font-smoothing:antialiased;
+  font-feature-settings:'tnum' 1,'cv05' 1;
+}
 
-    /* ── SVG defaults ── */
-    .axis text { fill: #7a829e; font-size: 11px; }
-    .axis path, .axis line { stroke: #2e3347; }
-    .grid line { stroke: #232636; stroke-dasharray: 3,3; }
+.wrap{max-width:1560px;margin:0 auto;padding:26px 24px 64px}
 
-    /* ── Tooltip ── */
-    #tooltip {
-      position: fixed;
-      background: #1e2130ee;
-      border: 1px solid #3a3f58;
-      border-radius: 8px;
-      padding: 8px 12px;
-      font-size: .8rem;
-      color: #cdd;
-      pointer-events: none;
-      display: none;
-      z-index: 99;
-    }
+/* ── HEADER ───────────────────────────────── */
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:20px}
+.head h1{font-size:25px;font-weight:680;letter-spacing:-.022em;margin:0 0 5px;line-height:1.15}
+.head .sub{font-size:13.5px;color:var(--ink-2);margin:0;max-width:82ch;line-height:1.5}
+.badge{
+  display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:560;color:var(--ink-2);
+  background:rgba(255,255,255,.72);border:1px solid var(--line);border-radius:999px;padding:6px 12px;
+  backdrop-filter:blur(8px);white-space:nowrap;
+}
+.badge b{color:var(--ink);font-variant-numeric:tabular-nums;font-weight:640}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--c-shared)}
 
-    /* ── Footer ── */
-    footer {
-      text-align: center;
-      padding: 16px;
-      font-size: .72rem;
-      color: #3a3f58;
-    }
-  </style>
+/* ── CARD ─────────────────────────────────── */
+.card{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:var(--shadow);
+}
+
+/* ── TẦNG 1 · FILTER ──────────────────────── */
+.filters{padding:13px 15px;display:flex;align-items:center;gap:11px;flex-wrap:wrap;margin-bottom:14px}
+.f-lab{font-size:10.5px;font-weight:640;letter-spacing:.075em;text-transform:uppercase;color:var(--ink-3);margin-right:2px}
+
+.ms{position:relative}
+.ms-btn{
+  font-family:var(--font);font-size:13px;font-weight:520;color:var(--ink);
+  background:#fff;border:1px solid var(--line);border-radius:9px;padding:8px 11px;
+  display:flex;align-items:center;gap:8px;cursor:pointer;transition:border-color .13s,box-shadow .13s;min-width:158px;
+}
+.ms-btn:hover{border-color:#c3ccdb}
+.ms.open .ms-btn{border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,74,134,.11)}
+.ms-btn .cnt{
+  margin-left:auto;font-size:11px;font-weight:620;color:var(--ink-2);
+  background:var(--line-2);border-radius:5px;padding:2px 6px;font-variant-numeric:tabular-nums;
+}
+.ms-btn .chev{width:9px;height:9px;border-right:1.6px solid var(--ink-3);border-bottom:1.6px solid var(--ink-3);transform:rotate(45deg) translate(-2px,-2px);flex:none}
+.ms-pop{
+  display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:60;min-width:216px;
+  background:#fff;border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow-lift);padding:6px;
+}
+.ms.open .ms-pop{display:block}
+.ms-opt{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:7px;cursor:pointer;font-size:13px;transition:background .1s}
+.ms-opt:hover{background:var(--line-2)}
+.ms-opt input{accent-color:var(--accent);width:14px;height:14px;cursor:pointer;flex:none;margin:0}
+.ms-opt .sw{width:9px;height:9px;border-radius:2.5px;flex:none}
+.ms-opt .n{margin-left:auto;font-size:11px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.ms-sep{height:1px;background:var(--line);margin:5px 2px}
+.ms-all{display:flex;gap:6px;padding:2px}
+.ms-all button{
+  flex:1;font-family:var(--font);font-size:11.5px;font-weight:560;color:var(--ink-2);
+  background:var(--line-2);border:0;border-radius:6px;padding:6px;cursor:pointer;transition:background .1s
+}
+.ms-all button:hover{background:#e3e8f1;color:var(--ink)}
+
+.slider{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:9px;padding:7px 12px}
+.slider .cap{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;min-width:74px;color:var(--ink)}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;width:150px;height:4px;border-radius:3px;background:var(--line);outline:none;cursor:pointer
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--accent);
+  border:2.5px solid #fff;box-shadow:0 1px 4px rgba(20,26,34,.3);cursor:pointer
+}
+input[type=range]::-moz-range-thumb{
+  width:15px;height:15px;border-radius:50%;background:var(--accent);border:2.5px solid #fff;
+  box-shadow:0 1px 4px rgba(20,26,34,.3);cursor:pointer
+}
+
+.reset{
+  font-family:var(--font);font-size:12.5px;font-weight:560;color:var(--ink-2);background:#fff;
+  border:1px solid var(--line);border-radius:9px;padding:8px 13px;cursor:pointer;transition:all .13s;margin-left:auto
+}
+.reset:hover{border-color:#c3ccdb;color:var(--ink);background:#fbfcfe}
+
+.selpill{
+  display:none;align-items:center;gap:8px;font-size:12.5px;font-weight:560;color:#fff;
+  background:var(--accent);border-radius:999px;padding:7px 8px 7px 13px;
+}
+.selpill.on{display:inline-flex}
+.selpill button{
+  border:0;background:rgba(255,255,255,.22);color:#fff;width:17px;height:17px;border-radius:50%;
+  cursor:pointer;font-size:12px;line-height:1;display:grid;place-items:center;padding:0;font-family:var(--font)
+}
+.selpill button:hover{background:rgba(255,255,255,.36)}
+
+/* ── TẦNG 2 · KPI ─────────────────────────── */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px}
+.kpi{padding:15px 17px;position:relative;overflow:hidden}
+.kpi::after{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--k,var(--accent));opacity:.85}
+.kpi .t{font-size:10.5px;font-weight:640;letter-spacing:.075em;text-transform:uppercase;color:var(--ink-3);margin-bottom:9px}
+.kpi .v{font-size:27px;font-weight:660;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1;color:var(--ink)}
+.kpi .m{font-size:11.5px;color:var(--ink-3);margin-top:7px;line-height:1.35}
+.kpi .m b{color:var(--ink-2);font-weight:600}
+
+/* ── TẦNG 3 · SECTION + CHART ─────────────── */
+.sect{margin-top:22px}
+.sect-h{display:flex;align-items:baseline;gap:11px;margin-bottom:11px;padding-left:2px;flex-wrap:wrap}
+.sect-n{
+  font-size:10.5px;font-weight:700;letter-spacing:.05em;color:#fff;background:var(--ink);
+  border-radius:5px;padding:3px 7px;flex:none
+}
+.sect-t{font-size:15px;font-weight:640;letter-spacing:-.015em;margin:0}
+.sect-d{font-size:12.5px;color:var(--ink-2);margin:0;line-height:1.5;flex-basis:100%;max-width:104ch}
+
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.chart{padding:15px 17px 13px;display:flex;flex-direction:column;min-width:0}
+.chart-h{margin-bottom:11px}
+.chart-t{font-size:13.5px;font-weight:620;letter-spacing:-.01em;margin:0 0 3px}
+.chart-s{font-size:11.5px;color:var(--ink-3);margin:0;line-height:1.4}
+.plot{background:var(--plot);border-radius:8px;position:relative;flex:1;min-width:0}
+.chart-f{font-size:10.5px;color:var(--ink-3);margin-top:9px;line-height:1.45;border-top:1px solid var(--line-2);padding-top:8px}
+.chart-f b{color:var(--ink-2);font-weight:600}
+
+.legend{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px}
+.lg{
+  display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:520;color:var(--ink-2);
+  border:1px solid var(--line);border-radius:7px;padding:4px 9px;cursor:pointer;
+  transition:all .13s;user-select:none;background:#fff
+}
+.lg:hover{border-color:#c3ccdb;background:#fbfcfe}
+.lg .sw{width:9px;height:9px;border-radius:2.5px;flex:none}
+.lg.off{opacity:.4}
+.lg.off .sw{background:var(--ink-3)!important}
+
+.hint{font-size:10.5px;color:var(--ink-3);font-style:italic}
+
+/* axes */
+.ax text{font-size:10.5px;fill:var(--ink-3);font-family:var(--font)}
+.ax .domain{stroke:var(--line)}
+.ax .tick line{stroke:var(--line)}
+.gridline line{stroke:var(--line-2);stroke-width:1}
+.gridline .domain{display:none}
+.axt{font-size:10.5px;fill:var(--ink-3);font-weight:560;font-family:var(--font)}
+.grp-lab{font-size:11.5px;fill:var(--ink-2);font-weight:600;font-family:var(--font)}
+
+.bar{cursor:pointer;transition:opacity .13s}
+.dim{opacity:.17}
+.cell{cursor:pointer}
+
+.empty{
+  position:absolute;inset:0;display:none;place-items:center;text-align:center;
+  font-size:12.5px;color:var(--ink-3);padding:20px;line-height:1.55
+}
+.empty.on{display:grid}
+
+/* tooltip */
+.tip{
+  position:fixed;z-index:200;pointer-events:none;opacity:0;transition:opacity .1s;
+  background:rgba(16,22,30,.97);color:#fff;border-radius:9px;padding:9px 11px;
+  font-size:11.5px;line-height:1.5;box-shadow:0 8px 26px rgba(0,0,0,.3);max-width:270px;
+  backdrop-filter:blur(6px)
+}
+.tip.on{opacity:1}
+.tip .th{font-weight:640;font-size:12px;margin-bottom:5px;display:flex;align-items:center;gap:6px}
+.tip .th .sw{width:8px;height:8px;border-radius:2px;flex:none}
+.tip .tr{display:flex;justify-content:space-between;gap:16px;color:rgba(255,255,255,.62)}
+.tip .tr b{color:#fff;font-weight:600;font-variant-numeric:tabular-nums}
+.tip .tw{
+  margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.16);
+  color:#ffc866;font-size:10.5px;line-height:1.4
+}
+
+.note{
+  font-size:11.5px;color:var(--ink-2);line-height:1.55;background:rgba(255,255,255,.6);
+  border:1px solid var(--line);border-left:3px solid var(--c-private);border-radius:9px;
+  padding:10px 13px;margin-top:14px
+}
+.note b{color:var(--ink);font-weight:620}
+
+@media(max-width:1180px){
+  .grid{grid-template-columns:1fr}
+  .kpis{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:620px){
+  .kpis{grid-template-columns:1fr}
+  .reset{margin-left:0}
+  .wrap{padding:18px 14px 48px}
+}
+</style>
 </head>
 <body>
+<div class="wrap">
 
-<header>
-  <h1>🏙️ Airbnb NYC – Dashboard</h1>
-  <span>Nguồn: Inside Airbnb · CSC10108 Data Visualization</span>
-</header>
+  <!-- ═══ HEADER ═══ -->
+  <header class="head">
+    <div>
+      <h1>Airbnb NYC — Bảng phân tích Định giá</h1>
+      <p class="sub">Hiệu suất kinh doanh và tương quan giá – đánh giá theo Quận × Loại phòng. Nguồn: Inside Airbnb NYC (<span id="src-n">—</span> listing đã làm sạch).</p>
+    </div>
+    <span class="badge"><span class="dot"></span> Đang phân tích <b id="badge-n">—</b> listing</span>
+  </header>
 
-<!-- ═══════════ SHARED FILTER ═══════════ -->
-<div id="filter-bar">
-  <label>Quận:</label>
-  <select id="sel-borough">
-    <option value="All">-- Tất cả --</option>
-  </select>
+  <!-- ═══ TẦNG 1 · FILTER ═══ -->
+  <div class="card filters">
+    <span class="f-lab">Bộ lọc</span>
 
-  <label>Loại phòng:</label>
-  <select id="sel-type">
-    <option value="All">-- Tất cả --</option>
-  </select>
+    <div class="ms" id="ms-borough">
+      <button class="ms-btn"><span>Quận</span><span class="cnt">5</span><span class="chev"></span></button>
+      <div class="ms-pop">
+        <div class="ms-all"><button data-all="1">Chọn tất cả</button><button data-all="0">Bỏ chọn</button></div>
+        <div class="ms-sep"></div>
+        <div class="ms-list"></div>
+      </div>
+    </div>
 
-  <label>Giá tối đa: </label>
-  <input type="range" id="sl-price" min="0" max="500" value="500" step="10"/>
-  <span id="price-val">≤ $500</span>
-</div>
+    <div class="ms" id="ms-room">
+      <button class="ms-btn"><span>Loại phòng</span><span class="cnt">4</span><span class="chev"></span></button>
+      <div class="ms-pop">
+        <div class="ms-all"><button data-all="1">Chọn tất cả</button><button data-all="0">Bỏ chọn</button></div>
+        <div class="ms-sep"></div>
+        <div class="ms-list"></div>
+      </div>
+    </div>
 
-<div id="tooltip"></div>
+    <div class="slider">
+      <span class="f-lab" style="margin:0">Giá tối đa</span>
+      <input type="range" id="price" min="50" max="2500" step="10" value="1000">
+      <span class="cap" id="price-cap">$1.000</span>
+    </div>
 
-<!-- ═══════════ CHART GRID ═══════════ -->
-<div id="grid">
+    <span class="selpill" id="selpill"><span id="selpill-t"></span><button id="selpill-x" title="Bỏ chọn">×</button></span>
 
-  <!--  CARD 1 – Bar Chart  (mỗi thành viên thay nội dung này) -->
-  <div class="card" id="card-bar">
-    <h2>📊 Chart A – Bar (Sample)</h2>
-    <p class="sub">Giá thuê trung bình theo Quận NYC — Gợi ý: Thay thế bằng Task của bạn</p>
-    <svg id="svg-bar"></svg>
+    <button class="reset" id="reset">Đặt lại</button>
   </div>
 
-  <!--  CARD 2 – Scatter Plot  -->
-  <div class="card" id="card-scatter">
-    <h2>🔵 Chart B – Scatter (Sample)</h2>
-    <p class="sub">Giá so với số lượng Reviews — Gợi ý: Thay thế bằng Task của bạn</p>
-    <svg id="svg-scatter"></svg>
+  <!-- ═══ TẦNG 2 · SECTION ANALYSIS ═══ -->
+  <div class="kpis">
+    <div class="card kpi" style="--k:var(--accent)">
+      <div class="t">Phòng phân tích</div>
+      <div class="v" id="k-n">—</div>
+      <div class="m" id="k-n-m">—</div>
+    </div>
+    <div class="card kpi" style="--k:var(--c-entire)">
+      <div class="t">Doanh thu TB / năm</div>
+      <div class="v" id="k-rev">—</div>
+      <div class="m" id="k-rev-m">—</div>
+    </div>
+    <div class="card kpi" style="--k:var(--c-shared)">
+      <div class="t">Lấp đầy TB</div>
+      <div class="v" id="k-occ">—</div>
+      <div class="m" id="k-occ-m">—</div>
+    </div>
+    <div class="card kpi" style="--k:var(--c-private)">
+      <div class="t">Giá trung vị / đêm</div>
+      <div class="v" id="k-price">—</div>
+      <div class="m" id="k-price-m">—</div>
+    </div>
   </div>
+
+  <!-- ═══ TẦNG 3 · DOMAIN-TASK 1 ═══ -->
+  <section class="sect">
+    <div class="sect-h">
+      <span class="sect-n">TASK 1</span>
+      <h2 class="sect-t">Hiệu suất kinh doanh theo Quận × Loại phòng</h2>
+      <p class="sect-d"><b>Action:</b> Discover → Compare · <b>Target:</b> Trends, Outliers, Features. Xác định phân khúc lưu trú có hiệu suất cao nhất để định hướng chiến lược giá. Nhấp một cột để chọn phân khúc — lựa chọn được liên kết sang cả 4 biểu đồ.</p>
+    </div>
+
+    <div class="grid">
+      <!-- 1.1 Idiom chính -->
+      <div class="card chart">
+        <div class="chart-h">
+          <h3 class="chart-t">Doanh thu TB theo Quận × Loại phòng</h3>
+          <p class="chart-s">Mark: Line (bar) · Channel: Position–Horizontal (Quận + Loại phòng), Length–Vertical (doanh thu), Color–Hue (Loại phòng)</p>
+        </div>
+        <div class="legend" id="legend"></div>
+        <div class="plot"><svg id="svg-rev"></svg><div class="empty" id="empty-rev"></div></div>
+        <div class="chart-f" id="foot-rev">—</div>
+      </div>
+
+      <!-- 1.2 Idiom phụ -->
+      <div class="card chart">
+        <div class="chart-h">
+          <h3 class="chart-t">Tỷ lệ lấp đầy TB theo Quận × Loại phòng</h3>
+          <p class="chart-s">Cùng cấu trúc nhóm với biểu đồ doanh thu → so sánh trực tiếp hai chiều hiệu suất</p>
+        </div>
+        <div class="legend" id="legend2"></div>
+        <div class="plot"><svg id="svg-occ"></svg><div class="empty" id="empty-occ"></div></div>
+        <div class="chart-f" id="foot-occ">—</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ TẦNG 3 · DOMAIN-TASK 2 ═══ -->
+  <section class="sect">
+    <div class="sect-h">
+      <span class="sect-n">TASK 2</span>
+      <h2 class="sect-t">Tương quan Giá thuê × Điểm đánh giá</h2>
+      <p class="sect-d"><b>Action:</b> Discover → Explore · <b>Target:</b> Correlation, Distribution, Outliers. Điều chỉnh chiến lược giá cho tương xứng với điểm đánh giá của khách. Nhấp một ô heatmap để soi phân khúc đó trên scatter.</p>
+    </div>
+
+    <div class="grid">
+      <!-- 2.1 Idiom chính -->
+      <div class="card chart">
+        <div class="chart-h">
+          <h3 class="chart-t">Giá thuê × Điểm đánh giá tổng</h3>
+          <p class="chart-s">Mark: Point · Channel: Position–Horizontal (giá, thang log), Position–Vertical (điểm), Color–Hue (Loại phòng), Size (số lượt đánh giá)</p>
+        </div>
+        <div class="legend" id="legend3"></div>
+        <div class="plot"><canvas id="cv-sc"></canvas><svg id="svg-sc" style="position:absolute;inset:0"></svg><div class="empty" id="empty-sc"></div></div>
+        <div class="chart-f" id="foot-sc">—</div>
+      </div>
+
+      <!-- 2.2 Idiom phụ -->
+      <div class="card chart">
+        <div class="chart-h">
+          <h3 class="chart-t">Điểm “đáng đồng tiền” trung vị theo Quận × Loại phòng</h3>
+          <p class="chart-s">Mark: Area (cell) · Channel: Position (Quận × Loại phòng), Color–Saturation/Luminance (điểm value, sequential colormap)</p>
+        </div>
+        <div class="plot"><svg id="svg-hm"></svg><div class="empty" id="empty-hm"></div></div>
+        <div class="chart-f" id="foot-hm">—</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="note" id="method">—</div>
 
 </div>
 
-<footer>CSC10108 · Trực Quan Hóa Dữ Liệu · 2025–2026</footer>
+<div class="tip" id="tip"></div>
 
 <script>
-// ════════════════════════════════════════
-//  CONFIG & HELPERS
-// ════════════════════════════════════════
+'use strict';
+
+/* ══════════════════════════════════════════════════════════════
+   CONSTANTS
+   ══════════════════════════════════════════════════════════════ */
+
+// Inside Airbnb caps estimated occupancy at 70% of the year (255/365 days).
+// Every occupancy rate in this dashboard is occ/365, so it can never exceed ~69.9%.
+const YEAR_DAYS = 365;
+
+// Cells/bars below this n are drawn hatched + flagged: the estimate exists but
+// is not trustworthy (e.g. Staten Island x Shared room = 2 listings).
+const MIN_N = 30;
+
+const ROOMS = ['Entire home/apt', 'Private room', 'Hotel room', 'Shared room'];
+const BOROS = ['Manhattan', 'Brooklyn', 'Queens', 'Bronx', 'Staten Island'];
+
 const COLOR = d3.scaleOrdinal()
-  .domain(['Manhattan','Brooklyn','Queens','Bronx','Staten Island'])
-  .range(['#7986cb','#4db6ac','#ffb74d','#f06292','#aed581']);  // Colorblind-safe ý, OK
+  .domain(ROOMS)
+  .range(['#4269d0', '#efb118', '#ff725c', '#3ca39b']);
 
-const tip = d3.select('#tooltip');
-function showTip(html, event) {
-  tip.style('display','block').html(html)
-     .style('left', (event.clientX + 14) + 'px')
-     .style('top',  (event.clientY - 28) + 'px');
-}
-function hideTip() { tip.style('display','none'); }
+// Slider at max = no upper cap at all, so the 1% of listings above $2.5k stay reachable.
+const PRICE_MAX = 2500;
 
-// ════════════════════════════════════════
-//  LOAD DATA – đọc Master CSV
-// ════════════════════════════════════════
-d3.csv('../dataset/listings_clean.csv', d => ({
-  borough : d.neighbourhood_group,
-  roomType: d.room_type,
-  price   : +d.price,
-  reviews : +d.number_of_reviews,
-  lat     : +d.latitude,
-  lng     : +d.longitude,
-})).then(raw => {
+const fUSD  = n => '$' + d3.format(',.0f')(n).replace(/,/g, '.');
+const fUSDk = n => n >= 1000 ? '$' + d3.format('.3~s')(n).replace('k', 'K') : '$' + Math.round(n);
+const fInt  = n => d3.format(',.0f')(n).replace(/,/g, '.');
+const fPct  = n => d3.format('.1f')(n).replace('.', ',') + '%';
+const fSco  = n => d3.format('.2f')(n).replace('.', ',');
 
-  // Populate filter dropdowns
-  const boroughs = ['All', ...new Set(raw.map(d=>d.borough).filter(Boolean).sort())];
-  const types    = ['All', ...new Set(raw.map(d=>d.roomType).filter(Boolean).sort())];
-  d3.select('#sel-borough').selectAll('option').data(boroughs).join('option')
-    .attr('value', d=>d).text(d=>d);
-  d3.select('#sel-type').selectAll('option').data(types).join('option')
-    .attr('value', d=>d).text(d=>d);
+/* ══════════════════════════════════════════════════════════════
+   STATE
+   ══════════════════════════════════════════════════════════════ */
 
-  // Re-draw on filter change
-  function filtered() {
-    const b = d3.select('#sel-borough').property('value');
-    const t = d3.select('#sel-type').property('value');
-    const p = +d3.select('#sl-price').property('value');
-    d3.select('#price-val').text(`≤ $${p}`);
-    return raw.filter(d =>
-      (b === 'All' || d.borough  === b) &&
-      (t === 'All' || d.roomType === t) &&
-      d.price > 0 && d.price <= p
-    );
-  }
+let RAW = [];
+const state = {
+  boroughs: new Set(BOROS),
+  rooms: new Set(ROOMS),
+  priceMax: 1000,
+  sel: null            // {borough, room} — cross-chart highlight, not a filter
+};
 
-  function redraw() {
-    const data = filtered();
-    drawBar(data);
-    drawScatter(data);
-  }
+const tip = d3.select('#tip');
 
-  d3.selectAll('#sel-borough, #sel-type').on('change', redraw);
-  d3.select('#sl-price').on('input', redraw);
+/* ══════════════════════════════════════════════════════════════
+   LOAD
+   ══════════════════════════════════════════════════════════════ */
+
+d3.csv('data/listings_dash.csv', d => ({
+  id: d.id,
+  name: d.name,
+  borough: d.borough,
+  room: d.room_type,
+  price: +d.price,
+  reviews: +d.reviews,
+  occ: +d.occ,
+  revenue: +d.revenue,
+  occRate: (+d.occ) / YEAR_DAYS * 100,
+  rating: d.rating === '' ? null : +d.rating,
+  value: d.value_score === '' ? null : +d.value_score
+})).then(data => {
+  RAW = data;
+  d3.select('#src-n').text(fInt(RAW.length));
+  buildFilters();
+  bindUI();
   redraw();
-
 }).catch(err => {
-  console.warn('Chưa có data:', err.message);
-  // Dùng data mẫu khi chưa có CSV
-  const sample = [
-    {borough:'Manhattan', roomType:'Entire home/apt', price:220, reviews:15},
-    {borough:'Brooklyn',  roomType:'Private room',    price:95,  reviews:42},
-    {borough:'Queens',    roomType:'Private room',    price:65,  reviews:88},
-    {borough:'Bronx',     roomType:'Shared room',     price:45,  reviews:10},
-    {borough:'Staten Island', roomType:'Entire home/apt', price:130, reviews:5},
-  ];
-  drawBar(sample);
-  drawScatter(sample);
+  console.error('[dashboard] không tải được data/listings_dash.csv', err);
+  document.querySelectorAll('.empty').forEach(e => {
+    e.classList.add('on');
+    e.textContent = 'Không tải được data/listings_dash.csv — hãy chạy dashboard qua HTTP (python -m http.server --directory dashboard) thay vì mở file trực tiếp.';
+  });
 });
 
-// ════════════════════════════════════════
-//  CHART A – BAR CHART
-// ════════════════════════════════════════
-function drawBar(data) {
-  const card = document.getElementById('card-bar');
-  const W = card.clientWidth - 40, H = 280;
-  const margin = {top:10, right:20, bottom:60, left:60};
-  const w = W - margin.left - margin.right;
-  const h = H - margin.top  - margin.bottom;
+/* ══════════════════════════════════════════════════════════════
+   FILTER UI
+   ══════════════════════════════════════════════════════════════ */
 
-  // Aggregate: giá trung bình theo borough
-  const rolled = d3.rollups(data, v => d3.mean(v, d => d.price), d => d.borough)
-    .map(([k,v]) => ({borough:k, avg:v}))
-    .sort((a,b) => b.avg - a.avg);
+function buildFilters() {
+  const mk = (host, values, keySet, colored) => {
+    const list = d3.select(host).select('.ms-list');
+    const counts = d3.rollup(RAW, v => v.length, d => colored ? d.room : d.borough);
 
-  const svg = d3.select('#svg-bar').attr('width', W).attr('height', H);
-  svg.selectAll('*').remove();
-  const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+    list.selectAll('label').data(values).join('label')
+      .attr('class', 'ms-opt')
+      .html(v => `
+        <input type="checkbox" checked>
+        ${colored ? `<span class="sw" style="background:${COLOR(v)}"></span>` : ''}
+        <span>${v}</span>
+        <span class="n">${fInt(counts.get(v) || 0)}</span>`)
+      .select('input')
+      .on('change', function (e, v) {
+        this.checked ? keySet.add(v) : keySet.delete(v);
+        // Selection must not survive a filter that hides it.
+        if (state.sel && !passSel()) state.sel = null;
+        syncFilters();
+        redraw();
+      });
 
-  const x = d3.scaleBand().domain(rolled.map(d=>d.borough)).range([0,w]).padding(.35);
-  const y = d3.scaleLinear().domain([0, d3.max(rolled, d=>d.avg)*1.1]).range([h,0]);
+    d3.select(host).selectAll('.ms-all button').on('click', function () {
+      const all = this.dataset.all === '1';
+      keySet.clear();
+      if (all) values.forEach(v => keySet.add(v));
+      if (state.sel && !passSel()) state.sel = null;
+      syncFilters();
+      redraw();
+    });
 
-  // Grid
-  g.append('g').attr('class','grid')
-   .call(d3.axisLeft(y).tickSize(-w).tickFormat(''));
+    d3.select(host).select('.ms-btn').on('click', e => {
+      e.stopPropagation();
+      const open = d3.select(host).classed('open');
+      d3.selectAll('.ms').classed('open', false);
+      d3.select(host).classed('open', !open);
+    });
+    d3.select(host).select('.ms-pop').on('click', e => e.stopPropagation());
+  };
 
-  // Bars
-  g.selectAll('rect').data(rolled).join('rect')
-    .attr('x', d => x(d.borough))
-    .attr('y', d => y(d.avg))
-    .attr('width', x.bandwidth())
-    .attr('height', d => h - y(d.avg))
-    .attr('rx', 5)
-    .attr('fill', d => COLOR(d.borough))
-    .on('mouseover', (event, d) =>
-      showTip(`<b>${d.borough}</b><br/>Avg Price: <b>$${d.avg.toFixed(0)}</b>`, event))
-    .on('mousemove', (event, d) =>
-      showTip(`<b>${d.borough}</b><br/>Avg Price: <b>$${d.avg.toFixed(0)}</b>`, event))
-    .on('mouseout', hideTip);
+  mk('#ms-borough', BOROS, state.boroughs, false);
+  mk('#ms-room', ROOMS, state.rooms, true);
 
-  // Axes
-  g.append('g').attr('class','axis').attr('transform',`translate(0,${h})`).call(d3.axisBottom(x))
-   .selectAll('text').attr('transform','rotate(-20)').style('text-anchor','end');
-  g.append('g').attr('class','axis').call(d3.axisLeft(y).ticks(5).tickFormat(d=>`$${d}`));
+  document.addEventListener('click', () => d3.selectAll('.ms').classed('open', false));
+  syncFilters();
 }
 
-// ════════════════════════════════════════
-//  CHART B – SCATTER PLOT
-// ════════════════════════════════════════
-function drawScatter(data) {
-  const card = document.getElementById('card-scatter');
-  const W = card.clientWidth - 40, H = 280;
-  const margin = {top:10, right:20, bottom:50, left:60};
-  const w = W - margin.left - margin.right;
-  const h = H - margin.top  - margin.bottom;
+// The selection is only valid while its borough+room are both still visible.
+function passSel() {
+  return state.sel && state.boroughs.has(state.sel.borough) && state.rooms.has(state.sel.room);
+}
 
-  // Lấy tối đa 600 điểm để không lag
-  const sample = data.length > 600 ? d3.shuffle([...data]).slice(0,600) : data;
+// Single source of truth: state -> every control + the legend.
+function syncFilters() {
+  d3.select('#ms-borough').selectAll('.ms-opt input')
+    .property('checked', (d, i, n) => state.boroughs.has(BOROS[i]));
+  d3.select('#ms-room').selectAll('.ms-opt input')
+    .property('checked', (d, i, n) => state.rooms.has(ROOMS[i]));
 
-  const svg = d3.select('#svg-scatter').attr('width', W).attr('height', H);
+  d3.select('#ms-borough .cnt').text(state.boroughs.size);
+  d3.select('#ms-room .cnt').text(state.rooms.size);
+
+  const v = state.priceMax;
+  d3.select('#price').property('value', v);
+  d3.select('#price-cap').text(v >= PRICE_MAX ? 'Không giới hạn' : fUSD(v));
+
+  // Legend doubles as the room-type filter (chart -> filter, bidirectional).
+  d3.selectAll('.legend').selectAll('.lg')
+    .classed('off', d => !state.rooms.has(d));
+
+  const pill = d3.select('#selpill').classed('on', !!state.sel);
+  if (state.sel) d3.select('#selpill-t').text(`${state.sel.borough} · ${state.sel.room}`);
+}
+
+function bindUI() {
+  d3.select('#price').on('input', function () {
+    state.priceMax = +this.value;
+    syncFilters();
+    redraw();
+  });
+
+  d3.select('#reset').on('click', () => {
+    state.boroughs = new Set(BOROS);
+    state.rooms = new Set(ROOMS);
+    state.priceMax = 1000;
+    state.sel = null;
+    syncFilters();
+    redraw();
+  });
+
+  d3.select('#selpill-x').on('click', () => { state.sel = null; syncFilters(); redraw(); });
+
+  // Legends are built once, then act as room-type filter toggles.
+  ['#legend', '#legend2', '#legend3'].forEach(id => {
+    d3.select(id).selectAll('.lg').data(ROOMS).join('div')
+      .attr('class', 'lg')
+      .html(r => `<span class="sw" style="background:${COLOR(r)}"></span>${r}`)
+      .on('click', (e, r) => {
+        state.rooms.has(r) ? state.rooms.delete(r) : state.rooms.add(r);
+        if (state.rooms.size === 0) state.rooms = new Set(ROOMS); // never filter to nothing
+        if (state.sel && !passSel()) state.sel = null;
+        syncFilters();
+        redraw();
+      });
+  });
+
+  let t;
+  window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(redraw, 140); });
+}
+
+function setSel(borough, room) {
+  state.sel = (state.sel && state.sel.borough === borough && state.sel.room === room)
+    ? null : { borough, room };
+  syncFilters();
+  redraw();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TOOLTIP
+   ══════════════════════════════════════════════════════════════ */
+
+function showTip(e, html) {
+  tip.html(html).classed('on', true);
+  const n = tip.node().getBoundingClientRect();
+  let x = e.clientX + 14, y = e.clientY + 14;
+  if (x + n.width > innerWidth - 8) x = e.clientX - n.width - 14;
+  if (y + n.height > innerHeight - 8) y = e.clientY - n.height - 14;
+  tip.style('left', x + 'px').style('top', y + 'px');
+}
+const hideTip = () => tip.classed('on', false);
+
+const warnHTML = n => n < MIN_N
+  ? `<div class="tw">⚠ Mẫu nhỏ (n=${n}) — ước tính không đáng tin cậy</div>` : '';
+
+/* ══════════════════════════════════════════════════════════════
+   DERIVE
+   ══════════════════════════════════════════════════════════════ */
+
+function filtered() {
+  const cap = state.priceMax >= PRICE_MAX ? Infinity : state.priceMax;
+  return RAW.filter(d =>
+    state.boroughs.has(d.borough) &&
+    state.rooms.has(d.room) &&
+    d.price <= cap);
+}
+
+const boroList = () => BOROS.filter(b => state.boroughs.has(b));
+const roomList = () => ROOMS.filter(r => state.rooms.has(r));
+
+// One grouped-bar model reused by both Task-1 charts.
+// value = MEAN over ALL listings in the cell, zeros included (see #method note).
+function groupStats(data, valueFn) {
+  const idx = d3.rollup(data, v => ({
+    n: v.length,
+    mean: d3.mean(v, valueFn),
+    zero: v.filter(d => d.revenue === 0).length
+  }), d => d.borough, d => d.room);
+
+  const out = [];
+  boroList().forEach(b => roomList().forEach(r => {
+    const c = idx.get(b)?.get(r);
+    if (c) out.push({ borough: b, room: r, n: c.n, value: c.mean, zero: c.zero });
+  }));
+  return out;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   DEFS — hatch pattern marks low-n bars/cells
+   ══════════════════════════════════════════════════════════════ */
+
+function addHatch(svg) {
+  const defs = svg.append('defs');
+  ROOMS.concat(['hm']).forEach(k => {
+    defs.append('pattern')
+      .attr('id', 'h-' + k.replace(/[^a-z]/gi, ''))
+      .attr('width', 5).attr('height', 5)
+      .attr('patternUnits', 'userSpaceOnUse')
+      .attr('patternTransform', 'rotate(45)')
+      .call(p => {
+        p.append('rect').attr('width', 5).attr('height', 5)
+          .attr('fill', k === 'hm' ? '#fff' : COLOR(k)).attr('opacity', k === 'hm' ? 1 : .38);
+        p.append('line').attr('x1', 0).attr('y1', 0).attr('x2', 0).attr('y2', 5)
+          .attr('stroke', k === 'hm' ? '#b9c2d0' : COLOR(k)).attr('stroke-width', 2.2);
+      });
+  });
+}
+
+const barFill = d => d.n < MIN_N
+  ? `url(#h-${d.room.replace(/[^a-z]/gi, '')})`
+  : COLOR(d.room);
+
+const isDim = d => state.sel && !(state.sel.borough === d.borough && state.sel.room === d.room);
+
+/* ══════════════════════════════════════════════════════════════
+   REDRAW
+   ══════════════════════════════════════════════════════════════ */
+
+function redraw() {
+  const data = filtered();
+  drawKPIs(data);
+  drawBars(data, '#svg-rev', '#empty-rev', '#foot-rev', 'revenue');
+  drawBars(data, '#svg-occ', '#empty-occ', '#foot-occ', 'occ');
+  drawScatter(data);
+  drawHeatmap(data);
+  drawMethod(data);
+}
+
+/* ── TẦNG 2 · KPI ─────────────────────────── */
+
+function drawKPIs(data) {
+  const n = data.length;
+  d3.select('#badge-n').text(fInt(n));
+  d3.select('#k-n').text(fInt(n));
+
+  if (!n) {
+    ['#k-rev', '#k-occ', '#k-price'].forEach(s => d3.select(s).text('—'));
+    d3.select('#k-n-m').text('Không có listing nào khớp bộ lọc');
+    ['#k-rev-m', '#k-occ-m', '#k-price-m'].forEach(s => d3.select(s).text('—'));
+    return;
+  }
+
+  const dormant = data.filter(d => d.revenue === 0).length;
+  const rated = data.filter(d => d.rating !== null).length;
+
+  d3.select('#k-n-m').html(
+    `<b>${fPct(n / RAW.length * 100)}</b> tổng dữ liệu · <b>${fInt(rated)}</b> có điểm đánh giá`);
+
+  d3.select('#k-rev').text(fUSD(d3.mean(data, d => d.revenue)));
+  d3.select('#k-rev-m').html(
+    `Trung bình toàn bộ listing · <b>${fPct(dormant / n * 100)}</b> không phát sinh doanh thu`);
+
+  d3.select('#k-occ').text(fPct(d3.mean(data, d => d.occRate)));
+  d3.select('#k-occ-m').html(`Trung bình · trần Inside Airbnb <b>69,9%</b>`);
+
+  d3.select('#k-price').text(fUSD(d3.median(data, d => d.price)));
+  d3.select('#k-price-m').html(
+    `Trung vị · khoảng <b>${fUSD(d3.min(data, d => d.price))}–${fUSD(d3.max(data, d => d.price))}</b>`);
+}
+
+/* ── 1.1 + 1.2 · GROUPED BAR ──────────────── */
+
+function drawBars(data, svgSel, emptySel, footSel, metric) {
+  const svg = d3.select(svgSel);
+  const box = svg.node().parentNode.getBoundingClientRect();
+  const W = box.width, H = Math.max(300, box.height);
   svg.selectAll('*').remove();
-  const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+  svg.attr('width', W).attr('height', H);
 
-  const x = d3.scaleLinear().domain([0, d3.max(sample, d=>d.reviews)*1.05]).range([0,w]);
-  const y = d3.scaleLinear().domain([0, d3.max(sample, d=>d.price )*1.05]).range([h,0]);
+  const isRev = metric === 'revenue';
+  const rows = groupStats(data, d => isRev ? d.revenue : d.occRate);
+  const empty = d3.select(emptySel).classed('on', rows.length === 0);
+  if (!rows.length) {
+    empty.text('Không có listing nào khớp bộ lọc hiện tại.');
+    d3.select(footSel).text('—');
+    return;
+  }
 
-  // Grid
-  g.append('g').attr('class','grid').call(d3.axisLeft(y).tickSize(-w).tickFormat(''));
+  addHatch(svg);
 
-  // Dots
-  g.selectAll('circle').data(sample).join('circle')
-    .attr('cx', d => x(d.reviews))
-    .attr('cy', d => y(d.price))
-    .attr('r', 4).attr('opacity', .65)
-    .attr('fill', d => COLOR(d.borough))
-    .on('mouseover', (event, d) =>
-      showTip(`<b>${d.borough}</b><br/>Price: $${d.price} | Reviews: ${d.reviews}`, event))
-    .on('mousemove', (event, d) =>
-      showTip(`<b>${d.borough}</b><br/>Price: $${d.price} | Reviews: ${d.reviews}`, event))
-    .on('mouseout', hideTip);
+  const m = { t: 12, r: 12, b: 46, l: 62 };
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const g = svg.append('g').attr('transform', `translate(${m.l},${m.t})`);
 
-  // Axes
-  g.append('g').attr('class','axis').attr('transform',`translate(0,${h})`).call(d3.axisBottom(x).ticks(5));
-  g.append('g').attr('class','axis').call(d3.axisLeft(y).ticks(5).tickFormat(d=>`$${d}`));
+  const bl = boroList(), rl = roomList();
+  const x0 = d3.scaleBand().domain(bl).range([0, iw]).paddingInner(.22).paddingOuter(.06);
+  const x1 = d3.scaleBand().domain(rl).range([0, x0.bandwidth()]).padding(.14);
+  const y = d3.scaleLinear()
+    .domain([0, d3.max(rows, d => d.value) * 1.12 || 1]).nice()
+    .range([ih, 0]);
 
-  // Labels
-  g.append('text').attr('x',w/2).attr('y',h+40).attr('text-anchor','middle')
-   .attr('fill','#555d7a').attr('font-size',11).text('Số lượng Reviews');
-  g.append('text').attr('transform','rotate(-90)').attr('x',-h/2).attr('y',-45)
-   .attr('text-anchor','middle').attr('fill','#555d7a').attr('font-size',11).text('Giá / đêm ($)');
+  g.append('g').attr('class', 'gridline')
+    .call(d3.axisLeft(y).ticks(5).tickSize(-iw).tickFormat(''));
+
+  g.append('g').attr('class', 'ax').attr('transform', `translate(0,${ih})`)
+    .call(d3.axisBottom(x0).tickSize(0).tickPadding(9))
+    .selectAll('text').attr('class', 'grp-lab');
+
+  g.append('g').attr('class', 'ax')
+    .call(d3.axisLeft(y).ticks(5).tickSize(0).tickPadding(7)
+      .tickFormat(v => isRev ? fUSDk(v) : d3.format('.0f')(v) + '%'));
+
+  svg.append('text').attr('class', 'axt')
+    .attr('transform', `translate(13,${m.t + ih / 2}) rotate(-90)`)
+    .attr('text-anchor', 'middle')
+    .text(isRev ? 'Doanh thu TB / năm (USD)' : 'Tỷ lệ lấp đầy TB (%)');
+
+  g.selectAll('.bar').data(rows).join('rect')
+    .attr('class', 'bar')
+    .attr('x', d => x0(d.borough) + x1(d.room))
+    .attr('y', d => y(d.value))
+    .attr('width', x1.bandwidth())
+    .attr('height', d => Math.max(0, ih - y(d.value)))
+    .attr('rx', Math.min(3, x1.bandwidth() / 5))
+    .attr('fill', barFill)
+    .classed('dim', isDim)
+    .on('mousemove', (e, d) => showTip(e, `
+      <div class="th"><span class="sw" style="background:${COLOR(d.room)}"></span>${d.borough} · ${d.room}</div>
+      <div class="tr"><span>${isRev ? 'Doanh thu TB' : 'Lấp đầy TB'}</span><b>${isRev ? fUSD(d.value) : fPct(d.value)}</b></div>
+      <div class="tr"><span>Số listing</span><b>${fInt(d.n)}</b></div>
+      <div class="tr"><span>Không doanh thu</span><b>${fPct(d.zero / d.n * 100)}</b></div>
+      ${warnHTML(d.n)}`))
+    .on('mouseleave', hideTip)
+    .on('click', (e, d) => { hideTip(); setSel(d.borough, d.room); });
+
+  const top = d3.greatest(rows.filter(d => d.n >= MIN_N), d => d.value);
+  const small = rows.filter(d => d.n < MIN_N).length;
+  d3.select(footSel).html(
+    (top ? `Cao nhất (n ≥ ${MIN_N}): <b>${top.borough} · ${top.room}</b> — ${isRev ? fUSD(top.value) : fPct(top.value)}. ` : '') +
+    (small ? `<b>${small}</b> cột gạch chéo có n &lt; ${MIN_N} → không đáng tin cậy.` : ''));
+}
+
+/* ── 2.1 · SCATTER (canvas + quadtree) ────── */
+// 14.8k points: canvas keeps cross-filtering interactive where SVG circles would not.
+
+let quad = null;
+
+function drawScatter(data) {
+  const cv = d3.select('#cv-sc'), svg = d3.select('#svg-sc');
+  const box = cv.node().parentNode.getBoundingClientRect();
+  const W = box.width, H = Math.max(300, box.height);
+
+  const pts = data.filter(d => d.rating !== null);
+  d3.select('#empty-sc').classed('on', pts.length === 0)
+    .text('Không có listing nào có điểm đánh giá trong bộ lọc hiện tại.');
+
+  const dpr = window.devicePixelRatio || 1;
+  cv.attr('width', W * dpr).attr('height', H * dpr)
+    .style('width', W + 'px').style('height', H + 'px');
+  const ctx = cv.node().getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  svg.selectAll('*').remove();
+  svg.attr('width', W).attr('height', H);
+  if (!pts.length) { d3.select('#foot-sc').text('—'); quad = null; return; }
+
+  const m = { t: 12, r: 14, b: 46, l: 48 };
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+
+  // Log scale on price: it spans $9–$50k and is heavily right-skewed.
+  // No .nice() — it would round the low end down to $1 and squeeze every point
+  // into the right half of an empty plot.
+  const x = d3.scaleLog()
+    .domain(d3.extent(pts, d => d.price))
+    .range([0, iw]);
+
+  // A log axis auto-generates a tick per 1-2-3…9 mantissa and the labels collide.
+  // Keep a readable 1-2-5 ladder inside the current domain.
+  const xTicks = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000]
+    .filter(v => v >= x.domain()[0] && v <= x.domain()[1]);
+  const y = d3.scaleLinear().domain([0.9, 5.03]).range([ih, 0]);
+  const rad = d3.scaleSqrt().domain([0, d3.max(pts, d => d.reviews) || 1]).range([1.5, 7]);
+
+  const g = svg.append('g').attr('transform', `translate(${m.l},${m.t})`);
+  g.append('g').attr('class', 'gridline')
+    .call(d3.axisLeft(y).tickValues([1, 2, 3, 4, 5]).tickSize(-iw).tickFormat(''));
+  g.append('g').attr('class', 'ax').attr('transform', `translate(0,${ih})`)
+    .call(d3.axisBottom(x).tickValues(xTicks).tickSize(4).tickPadding(6)
+      .tickFormat(v => '$' + d3.format('~s')(v).replace('k', 'K')));
+  g.append('g').attr('class', 'ax')
+    .call(d3.axisLeft(y).tickValues([1, 2, 3, 4, 5]).tickSize(0).tickPadding(7));
+
+  svg.append('text').attr('class', 'axt')
+    .attr('x', m.l + iw / 2).attr('y', H - 8).attr('text-anchor', 'middle')
+    .text('Giá thuê / đêm (USD, thang log)');
+  svg.append('text').attr('class', 'axt')
+    .attr('transform', `translate(12,${m.t + ih / 2}) rotate(-90)`).attr('text-anchor', 'middle')
+    .text('Điểm đánh giá tổng');
+
+  // Draw dimmed points first so the selected segment sits on top.
+  const sel = state.sel;
+  const inSel = d => sel && d.borough === sel.borough && d.room === sel.room;
+  const order = sel ? pts.slice().sort((a, b) => inSel(a) - inSel(b)) : pts;
+
+  ctx.save();
+  ctx.translate(m.l, m.t);
+  order.forEach(d => {
+    const dim = sel && !inSel(d);
+    ctx.globalAlpha = dim ? .12 : .5;
+    ctx.fillStyle = dim ? '#9aa5b5' : COLOR(d.room);
+    ctx.beginPath();
+    ctx.arc(x(d.price), y(d.rating), rad(d.reviews), 0, 6.2832);
+    ctx.fill();
+  });
+  ctx.restore();
+
+  quad = d3.quadtree()
+    .x(d => x(d.price) + m.l).y(d => y(d.rating) + m.t)
+    .addAll(pts);
+
+  svg.style('pointer-events', 'all')
+    .on('mousemove', function (e) {
+      const [mx, my] = d3.pointer(e, this);
+      const d = quad.find(mx, my, 22);
+      if (!d) return hideTip();
+      showTip(e, `
+        <div class="th"><span class="sw" style="background:${COLOR(d.room)}"></span>${d.name || 'Listing'}</div>
+        <div class="tr"><span>Quận</span><b>${d.borough}</b></div>
+        <div class="tr"><span>Loại phòng</span><b>${d.room}</b></div>
+        <div class="tr"><span>Giá / đêm</span><b>${fUSD(d.price)}</b></div>
+        <div class="tr"><span>Điểm đánh giá</span><b>${fSco(d.rating)}</b></div>
+        <div class="tr"><span>Số lượt đánh giá</span><b>${fInt(d.reviews)}</b></div>
+        <div class="tr"><span>Doanh thu / năm</span><b>${fUSD(d.revenue)}</b></div>`);
+    })
+    .on('mouseleave', hideTip)
+    .on('click', function (e) {
+      const [mx, my] = d3.pointer(e, this);
+      const d = quad.find(mx, my, 22);
+      if (d) { hideTip(); setSel(d.borough, d.room); }
+    });
+
+  // Correlation is computed on the points actually on screen.
+  const r = pearson(pts.map(d => Math.log10(d.price)), pts.map(d => d.rating));
+  const hidden = data.length - pts.length;
+  d3.select('#foot-sc').html(
+    `<b>${fInt(pts.length)}</b> điểm · tương quan Pearson (log giá × điểm) <b>r = ${fSco(r)}</b> → ${corrWord(r)}. ` +
+    (hidden ? `<b>${fInt(hidden)}</b> listing chưa có đánh giá nên không vẽ được.` : ''));
+}
+
+function pearson(a, b) {
+  const n = a.length;
+  if (n < 3) return NaN;
+  const ma = d3.mean(a), mb = d3.mean(b);
+  let num = 0, da = 0, db = 0;
+  for (let i = 0; i < n; i++) {
+    const u = a[i] - ma, v = b[i] - mb;
+    num += u * v; da += u * u; db += v * v;
+  }
+  return num / Math.sqrt(da * db);
+}
+
+function corrWord(r) {
+  const a = Math.abs(r);
+  if (isNaN(r)) return 'không đủ dữ liệu';
+  const dir = r > 0 ? 'thuận' : 'nghịch';
+  if (a < .1) return 'gần như không có tương quan';
+  if (a < .3) return `tương quan ${dir} yếu`;
+  if (a < .5) return `tương quan ${dir} trung bình`;
+  return `tương quan ${dir} mạnh`;
+}
+
+/* ── 2.2 · HEATMAP ────────────────────────── */
+
+function drawHeatmap(data) {
+  const svg = d3.select('#svg-hm');
+  const box = svg.node().parentNode.getBoundingClientRect();
+  const W = box.width, H = Math.max(300, box.height);
+  svg.selectAll('*').remove();
+  svg.attr('width', W).attr('height', H);
+
+  const rated = data.filter(d => d.value !== null);
+  const idx = d3.rollup(rated, v => ({ n: v.length, med: d3.median(v, d => d.value) }),
+    d => d.borough, d => d.room);
+
+  const bl = boroList(), rl = roomList();
+  const cells = [];
+  bl.forEach(b => rl.forEach(r => {
+    const c = idx.get(b)?.get(r);
+    cells.push({ borough: b, room: r, n: c ? c.n : 0, med: c ? c.med : null });
+  }));
+
+  const live = cells.filter(c => c.med !== null);
+  d3.select('#empty-hm').classed('on', live.length === 0)
+    .text('Không có listing nào có điểm “đáng đồng tiền” trong bộ lọc hiện tại.');
+  if (!live.length) { d3.select('#foot-hm').text('—'); return; }
+
+  addHatch(svg);
+
+  const m = { t: 10, r: 16, b: 62, l: 96 };
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const g = svg.append('g').attr('transform', `translate(${m.l},${m.t})`);
+
+  const x = d3.scaleBand().domain(rl).range([0, iw]).padding(.07);
+  const y = d3.scaleBand().domain(bl).range([0, ih]).padding(.07);
+
+  // Medians span only ~4.37-4.82. A fixed 0-5 domain would render every cell
+  // identically, so the colormap is fitted to the visible extent instead.
+  let [lo, hi] = d3.extent(live, c => c.med);
+  if (hi - lo < 0.05) { lo -= 0.05; hi += 0.05; }
+  const color = d3.scaleSequential(d3.interpolateYlGnBu).domain([lo, hi]);
+
+  g.selectAll('.cell').data(cells).join('rect')
+    .attr('class', 'cell')
+    .attr('x', c => x(c.room)).attr('y', c => y(c.borough))
+    .attr('width', x.bandwidth()).attr('height', y.bandwidth())
+    .attr('rx', 5)
+    .attr('fill', c => c.med === null ? '#f4f6fa' : (c.n < MIN_N ? 'url(#h-hm)' : color(c.med)))
+    .attr('stroke', c => state.sel && state.sel.borough === c.borough && state.sel.room === c.room
+      ? 'var(--ink)' : 'transparent')
+    .attr('stroke-width', 2)
+    .classed('dim', c => c.med !== null && isDim(c))
+    .on('mousemove', (e, c) => showTip(e, c.med === null
+      ? `<div class="th">${c.borough} · ${c.room}</div><div class="tr"><span>Không có listing nào có điểm đánh giá</span></div>`
+      : `<div class="th">${c.borough} · ${c.room}</div>
+         <div class="tr"><span>Điểm value trung vị</span><b>${fSco(c.med)}</b></div>
+         <div class="tr"><span>Số listing</span><b>${fInt(c.n)}</b></div>
+         ${warnHTML(c.n)}`))
+    .on('mouseleave', hideTip)
+    .on('click', (e, c) => { if (c.med !== null) { hideTip(); setSel(c.borough, c.room); } });
+
+  g.selectAll('.cl').data(cells.filter(c => c.med !== null && c.n >= MIN_N)).join('text')
+    .attr('x', c => x(c.room) + x.bandwidth() / 2)
+    .attr('y', c => y(c.borough) + y.bandwidth() / 2 + 4)
+    .attr('text-anchor', 'middle')
+    .style('font-size', '11.5px').style('font-weight', 600)
+    .style('font-family', 'var(--font)').style('pointer-events', 'none')
+    .style('fill', c => d3.lab(color(c.med)).l > 65 ? '#1d2733' : '#fff')
+    .text(c => fSco(c.med));
+
+  g.append('g').attr('class', 'ax').attr('transform', `translate(0,${ih})`)
+    .call(d3.axisBottom(x).tickSize(0).tickPadding(8))
+    .selectAll('text').style('font-size', '11px').style('font-weight', 560);
+  g.append('g').attr('class', 'ax')
+    .call(d3.axisLeft(y).tickSize(0).tickPadding(8))
+    .selectAll('text').style('font-size', '11px').style('font-weight', 560);
+  svg.selectAll('.ax .domain').remove();
+
+  // Legend — must state the fitted domain, or 4,37 reads as "bad".
+  const lw = Math.min(190, iw * .62), lh = 8, lx = m.l, ly = H - 26;
+  const gid = 'hm-grad';
+  const defs = svg.select('defs');
+  const grad = defs.append('linearGradient').attr('id', gid);
+  d3.range(0, 1.001, .05).forEach(t =>
+    grad.append('stop').attr('offset', t * 100 + '%').attr('stop-color', color(lo + t * (hi - lo))));
+
+  svg.append('rect').attr('x', lx).attr('y', ly).attr('width', lw).attr('height', lh)
+    .attr('rx', 4).attr('fill', `url(#${gid})`);
+  svg.append('text').attr('class', 'axt').attr('x', lx).attr('y', ly - 5).text(fSco(lo));
+  svg.append('text').attr('class', 'axt').attr('x', lx + lw).attr('y', ly - 5)
+    .attr('text-anchor', 'end').text(fSco(hi));
+  svg.append('text').attr('class', 'axt').attr('x', lx + lw + 10).attr('y', ly + lh)
+    .text('điểm value trung vị');
+
+  const small = cells.filter(c => c.med !== null && c.n < MIN_N).length;
+  const best = d3.greatest(live.filter(c => c.n >= MIN_N), c => c.med);
+  d3.select('#foot-hm').html(
+    `Thang màu bó theo khoảng thực tế <b>${fSco(lo)}–${fSco(hi)}</b> (không phải 0–5) — chênh lệch giữa các quận rất hẹp. ` +
+    (best ? `Cao nhất: <b>${best.borough} · ${best.room}</b> (${fSco(best.med)}). ` : '') +
+    (small ? `<b>${small}</b> ô gạch chéo có n &lt; ${MIN_N}.` : ''));
+}
+
+/* ── METHOD NOTE ──────────────────────────── */
+
+function drawMethod(data) {
+  const n = data.length;
+  const dormant = data.filter(d => d.revenue === 0).length;
+  d3.select('#method').html(
+    `<b>Ghi chú phương pháp.</b> Doanh thu và lấp đầy là <b>trung bình trên toàn bộ listing đang lọc</b> — bao gồm cả ` +
+    `<b>${fInt(dormant)}</b> listing (${n ? fPct(dormant / n * 100) : '—'}) có doanh thu bằng 0. ` +
+    `Inside Airbnb ước tính số ngày lấp đầy từ số lượt đánh giá, nên listing không có đánh giá gần đây sẽ nhận giá trị 0; ` +
+    `các listing này được giữ lại trong phép tính thay vì loại bỏ. ` +
+    `Vì <code>doanh thu = giá × số ngày lấp đầy</code>, vài listing giá cực cao (tối đa $50.138/đêm) có thể kéo lệch giá trị trung bình — ` +
+    `bộ lọc <b>Giá tối đa</b> (mặc định $1.000, giữ 97,8% listing) là công cụ kiểm soát trực tiếp cho ảnh hưởng này. ` +
+    `Ô/cột <b>gạch chéo</b> có n &lt; ${MIN_N}: giá trị vẫn được tính đúng nhưng không đủ mẫu để kết luận.`);
 }
 </script>
 </body>
