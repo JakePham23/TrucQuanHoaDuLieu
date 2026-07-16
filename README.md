@@ -6,13 +6,16 @@ Báo cáo phân tích và trực quan hóa dữ liệu thị trường lưu trú
 
 ## 👥 Thành Viên Nhóm & Phân Công Nhiệm Vụ
 
-1. **JakePham23 (MSSV: 22120230)** - Phụ trách Dashboard Chung (Domain Task 1 & 2):
+1. **Phạm Tấn Nghĩa (MSSV: 22120230)** - Phụ trách Dashboard Chung (Domain Task 1 & 2):
    - **Domain Task 1:** Market Supply & Pricing Distribution (Tổng quan thị trường và cơ cấu phòng).
    - **Domain Task 2:** Geospatial Analysis (Bản đồ phân vùng nhiệt Choropleth Map & Bảng xếp hạng Top 10 khu phố đắt đỏ nhất).
-2. **Phạm Tấn Nghĩa** - Phụ trách Dashboard Nghĩa (`index_Nghia.html`):
+2. **Lê Trọng Nghĩa (MSSV: 22120226)** - Phụ trách Dashboard Nghĩa (`index_Nghia.html`):
+   - Trực quan hóa Mật độ phân bổ, Treemap, Phân tích giá và sự tăng trưởng lượt đánh giá.
+3. **Lý Trường Nam (MSSV: 22120218)** - Phụ trách Dashboard Nam (`index_Nam.html`):
    - Trực quan hóa Mật độ phòng (Density Grid), Treemap phân bổ và Ảnh hưởng của Tiện ích lên giá thuê (Amenity Uplift).
-3. **Hoàng Minh Phúc** - Phụ trách Dashboard Phúc (`index_Phuc.html`):
+4. **Hà Gia Phúc (MSSV: 22120272)** - Phụ trách Dashboard Phúc (`index_Phuc.html`):
    - Phân tích tương quan định giá và hiệu suất kinh doanh phòng (Borough x Room Type).
+5. **Nguyễn Minh Tâm (MSSV: 22120321)** - Thành viên nhóm (Chưa có Dashboard riêng).
 
 ---
 
