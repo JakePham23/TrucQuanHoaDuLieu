@@ -9,8 +9,22 @@
 import pandas as pd
 import json, io
 
-LISTINGS = 'dataset/Cleaned/listings_clean.csv'
-OUT_HTML = 'index.html'
+import os
+
+# Detect listings_clean.csv path robustly due to trailing space in folder "Cleaned "
+if os.path.exists('Cleaned /listings_clean.csv'):
+    LISTINGS = 'Cleaned /listings_clean.csv'
+elif os.path.exists('../Cleaned /listings_clean.csv'):
+    LISTINGS = '../Cleaned /listings_clean.csv'
+else:
+    LISTINGS = 'dataset/Cleaned/listings_clean.csv'
+
+# Output file path (always index_Nam.html inside dashboard directory)
+if os.path.exists('dashboard'):
+    OUT_HTML = 'dashboard/index_Nam.html'
+else:
+    OUT_HTML = 'index_Nam.html'
+
 PRICE_CAP = 538.0   # Q3 + 1.5*IQR outlier cutoff (loại giá ngoại lai khi tính uplift)
 
 AMENITY_COLS = [
@@ -152,7 +166,14 @@ HTML = """<!DOCTYPE html>
 <header>
   <div>
     <h1>Airbnb NYC — Host Quality &amp; Amenities <span id="filter-label" style="color:#63b3ed;font-weight:normal;"></span></h1>
-    <div class="sub">Superhost vs Host thường · Tiện nghi &amp; giá — D3.js v7, dữ liệu nhúng tĩnh (click nút để lọc nhóm chủ nhà)</div>
+    <div class="sub" style="margin-bottom: 10px;">Superhost vs Host thường · Tiện nghi &amp; giá — D3.js v7, dữ liệu nhúng tĩnh (click nút để lọc nhóm chủ nhà)</div>
+    <div class="member-dashboards" style="display: flex; gap: 10px; margin-bottom: 10px;">
+      <a href="index.html" style="padding: 6px 12px; background: #e2e8f0; color: #4a5568; text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 0.85rem; border: 1px solid #cbd5e0;">Phạm Tấn Nghĩa (22120230)</a>
+      <a href="index_Nam.html" style="padding: 6px 12px; background: #ff5a5f; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 0.85rem;">Lý Trường Nam (22120218)</a>
+      <a href="index_Nghia.html" style="padding: 6px 12px; background: #e2e8f0; color: #4a5568; text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 0.85rem; border: 1px solid #cbd5e0;">Lê Trọng Nghĩa (22120226)</a>
+      <a href="index_Phuc.html" style="padding: 6px 12px; background: #e2e8f0; color: #4a5568; text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 0.85rem; border: 1px solid #cbd5e0;">Hà Gia Phúc (22120272)</a>
+      <a href="index_Tam.html" style="padding: 6px 12px; background: #e2e8f0; color: #4a5568; text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 0.85rem; border: 1px solid #cbd5e0;">Nguyễn Minh Tâm (22120321)</a>
+    </div>
   </div>
   <div class="toggle" id="toggle">
     <button data-g="All" class="active">Tất cả</button>
@@ -187,7 +208,7 @@ HTML = """<!DOCTYPE html>
 __DATA__
 </script>
 
-<script src="dashboard.js"></script>
+<script src="dashboard_Nam.js"></script>
 </body>
 </html>
 """

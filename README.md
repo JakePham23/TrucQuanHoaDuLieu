@@ -15,7 +15,8 @@ Báo cáo phân tích và trực quan hóa dữ liệu thị trường lưu trú
    - Trực quan hóa Mật độ phòng (Density Grid), Treemap phân bổ và Ảnh hưởng của Tiện ích lên giá thuê (Amenity Uplift).
 4. **Hà Gia Phúc (MSSV: 22120272)** - Phụ trách Dashboard Phúc (`index_Phuc.html`):
    - Phân tích tương quan định giá và hiệu suất kinh doanh phòng (Borough x Room Type).
-5. **Nguyễn Minh Tâm (MSSV: 22120321)** - Thành viên nhóm (Chưa có Dashboard riêng).
+5. **Nguyễn Minh Tâm (MSSV: 22120321)** - Phụ trách Dashboard Tâm (`index_Tam.html`):
+   - Phân tích Giá cả, Nhu cầu (Demand), Cơ cấu Loại phòng (Room Type Structure) và Cường độ Cạnh tranh (Competitive Intensity).
 
 ---
 
