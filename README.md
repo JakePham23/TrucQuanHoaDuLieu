@@ -13,6 +13,11 @@ Báo cáo phân tích và trực quan hóa dữ liệu thị trường lưu trú
    - Trực quan hóa Mật độ phòng (Density Grid), Treemap phân bổ và Ảnh hưởng của Tiện ích lên giá thuê (Amenity Uplift).
 3. **Hoàng Minh Phúc** - Phụ trách Dashboard Phúc (`index_Phuc.html`):
    - Phân tích tương quan định giá và hiệu suất kinh doanh phòng (Borough x Room Type).
+4. **Lê Trọng Nghĩa** - Phụ trách Dashboard Lê Nghĩa (index_Nghia.html):
+   - Phân tích mật độ phân bổ thị phần.
+   - Mức giá trung bình theo vùng 
+   - Phân tích tốc độ tăng trưởng reivew theo thời gian
+   - Sự tương quan giữa giá thuê và điểm số đánh giá 
 
 ---
 
