@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New York Airbnb Market Analysis — Tâm</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <style>
+        :root {
+            --ink: #202124;
+            --muted: #6b7280;
+            --line: #d8dde5;
+            --line-soft: #edf0f4;
+            --panel: #ffffff;
+            --page: #f5f6f8;
+            --accent: #ff5a5f;
+            --blue: #4e79a7;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            color: var(--ink);
+            background: var(--page);
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        button, select { font: inherit; }
+
+        .dashboard {
+            width: min(1440px, calc(100% - 28px));
+            min-height: 100vh;
+            margin: 14px auto;
+            padding: 14px;
+            background: #fff;
+            border: 1px solid #cfd4dc;
+            box-shadow: 0 8px 30px rgba(15, 23, 42, .08);
+        }
+
+        .dashboard-header {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 20px;
+            padding: 4px 6px 14px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(21px, 2.2vw, 30px);
+            line-height: 1.15;
+            letter-spacing: -.03em;
+        }
+
+        .subtitle {
+            margin-top: 5px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .source-badge {
+            flex: 0 0 auto;
+            padding: 6px 9px;
+            color: #4b5563;
+            background: #f9fafb;
+            border: 1px solid var(--line);
+            border-radius: 5px;
+            font-size: 11px;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .kpi {
+            min-height: 85px;
+            display: grid;
+            place-content: center;
+            text-align: center;
+            background: var(--panel);
+            border: 2px solid #252525;
+            border-radius: 10px;
+        }
+
+        .kpi-value {
+            font-size: clamp(24px, 2.5vw, 34px);
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .kpi-label {
+            margin-top: 8px;
+            color: #444;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .filter-bar {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(145px, 1fr)) auto minmax(260px, 1.7fr);
+            align-items: end;
+            gap: 8px;
+            margin-bottom: 10px;
+            padding: 8px;
+            background: #fafafa;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+        }
+
+        .filter label {
+            display: block;
+            margin: 0 0 4px 1px;
+            color: #4b5563;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+        }
+
+        select {
+            width: 100%;
+            height: 34px;
+            padding: 0 9px;
+            color: #262626;
+            background: #fff;
+            border: 1px solid #bfc5cd;
+            border-radius: 5px;
+            outline: none;
+        }
+
+        select:focus { border-color: var(--blue); box-shadow: 0 0 0 2px #4e79a722; }
+
+        .reset-button {
+            height: 34px;
+            padding: 0 14px;
+            color: #fff;
+            background: #2f3742;
+            border: 0;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .reset-button:hover { background: #111827; }
+
+        .room-legend {
+            min-height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            gap: 5px 12px;
+            padding: 4px 2px;
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            color: #4b5563;
+            font-size: 10px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .legend-item:hover { color: #111827; }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.6fr) minmax(360px, 1fr);
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .panel {
+            position: relative;
+            min-width: 0;
+            overflow: hidden;
+            background: var(--panel);
+            border: 1px solid var(--line);
+        }
+
+        .panel-header {
+            min-height: 42px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 9px 11px 5px;
+            border-bottom: 1px solid var(--line-soft);
+        }
+
+        .panel-title {
+            margin: 0;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .panel-note {
+            margin-top: 3px;
+            color: var(--muted);
+            font-size: 10px;
+        }
+
+        .chart { width: 100%; min-height: 360px; }
+        .chart svg { display: block; width: 100%; overflow: visible; }
+
+        .axis text { fill: #69717d; font-size: 9px; }
+        .axis path, .axis line { stroke: #c8cdd4; }
+        .grid-line line { stroke: #e7e9ed; }
+        .grid-line path { display: none; }
+        .axis-label { fill: #555d68; font-size: 9px; font-weight: 600; }
+        .facet-label { fill: #30343a; font-size: 9px; font-weight: 700; }
+        .room-mark { transition: opacity .12s ease, filter .12s ease; }
+        .room-mark.is-muted { opacity: .12 !important; filter: grayscale(.5); }
+
+        .detail-button {
+            display: none;
+            padding: 5px 9px;
+            color: #374151;
+            background: #fff;
+            border: 1px solid #aeb5bf;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .detail-button.visible { display: inline-block; }
+
+        .map-filter {
+            flex: 0 0 210px;
+        }
+
+        .map-filter label {
+            display: block;
+            margin-bottom: 3px;
+            color: #7a3f12;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: .035em;
+            text-transform: uppercase;
+        }
+
+        .map-filter select {
+            height: 30px;
+            border-color: #d9a441;
+            font-size: 10px;
+        }
+
+        #competition-map {
+            width: 100%;
+            height: 420px;
+            background: #e9edf1;
+        }
+
+        .map-status {
+            position: absolute;
+            z-index: 500;
+            left: 10px;
+            bottom: 10px;
+            padding: 6px 8px;
+            color: #313740;
+            background: rgba(255, 255, 255, .92);
+            border: 1px solid #cfd5dc;
+            border-radius: 4px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, .08);
+            font-size: 10px;
+        }
+
+        .map-scale {
+            position: absolute;
+            z-index: 500;
+            top: 54px;
+            right: 10px;
+            width: 132px;
+            padding: 7px;
+            background: rgba(255, 255, 255, .92);
+            border: 1px solid #cfd5dc;
+            border-radius: 4px;
+            font-size: 9px;
+        }
+
+        .scale-gradient {
+            height: 8px;
+            margin: 5px 0 3px;
+            background: linear-gradient(90deg, #ffd54f, #f39c12, #d35400, #b22222, #6b0000);
+        }
+
+        .scale-labels { display: flex; justify-content: space-between; color: var(--muted); }
+
+        .tooltip {
+            position: fixed;
+            z-index: 2000;
+            max-width: 330px;
+            padding: 9px 10px;
+            pointer-events: none;
+            color: #f8fafc;
+            background: rgba(20, 24, 31, .95);
+            border: 1px solid #4b5563;
+            border-radius: 6px;
+            box-shadow: 0 9px 25px rgba(0, 0, 0, .2);
+            font-size: 11px;
+            line-height: 1.45;
+            opacity: 0;
+            transform: translateY(3px);
+            transition: opacity .08s, transform .08s;
+        }
+
+        .tooltip.visible { opacity: 1; transform: translateY(0); }
+        .tooltip strong { color: #fff; }
+        .tooltip-muted { color: #aeb8c5; }
+        .tooltip-divider { height: 1px; margin: 6px 0; background: #4b5563; }
+        .tooltip-bar { display: grid; grid-template-columns: 66px 90px 34px; gap: 5px; align-items: center; }
+        .tooltip-track { height: 5px; overflow: hidden; background: #4b5563; border-radius: 5px; }
+        .tooltip-fill { height: 100%; background: #ffb55a; }
+
+        .loading {
+            min-height: 760px;
+            display: grid;
+            place-items: center;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .error-box {
+            margin: 30px;
+            padding: 18px;
+            color: #9f1239;
+            background: #fff1f2;
+            border: 1px solid #fecdd3;
+            border-radius: 7px;
+        }
+
+        @media (max-width: 1050px) {
+            .filter-bar { grid-template-columns: repeat(2, 1fr); }
+            .room-legend { justify-content: flex-start; }
+            .chart-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 680px) {
+            .dashboard { width: 100%; margin: 0; padding: 8px; border: 0; }
+            .dashboard-header { align-items: flex-start; flex-direction: column; }
+            .kpi-grid { grid-template-columns: 1fr; }
+            .filter-bar { grid-template-columns: 1fr; }
+            .source-badge { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <main class="dashboard">
+        <header class="dashboard-header">
+            <div>
+                <h1>New York Airbnb Market Analysis</h1>
+                <div class="subtitle">Pricing · Demand · Room Type Structure · Competitive Intensity</div>
+            </div>
+            <div class="source-badge">Tableau workbook → Python JSON → D3.js</div>
+        </header>
+
+        <section id="loading" class="loading">Đang tải dữ liệu dashboard…</section>
+
+        <div id="dashboard-content" hidden>
+            <section class="kpi-grid" aria-label="Key performance indicators">
+                <article class="kpi">
+                    <div id="kpi-listings" class="kpi-value">—</div>
+                    <div class="kpi-label">Total listings analyzed</div>
+                </article>
+                <article class="kpi">
+                    <div id="kpi-price" class="kpi-value">—</div>
+                    <div class="kpi-label">Median nightly price</div>
+                </article>
+                <article class="kpi">
+                    <div id="kpi-demand" class="kpi-value">—</div>
+                    <div class="kpi-label">Average reviews per month</div>
+                </article>
+            </section>
+
+            <section class="filter-bar" aria-label="Dashboard filters">
+                <div class="filter">
+                    <label for="filter-borough">Borough</label>
+                    <select id="filter-borough"><option value="ALL">All boroughs</option></select>
+                </div>
+                <div class="filter">
+                    <label for="filter-room">Room type</label>
+                    <select id="filter-room"><option value="ALL">All room types</option></select>
+                </div>
+                <div class="filter">
+                    <label for="filter-price">Price segment</label>
+                    <select id="filter-price">
+                        <option value="ALL">All price segments</option>
+                        <option value="Budget">Budget (≤ $90)</option>
+                        <option value="Mid-range">Mid-range ($91–$269)</option>
+                        <option value="Premium">Premium (&gt; $269)</option>
+                    </select>
+                </div>
+                <button id="reset-filters" class="reset-button" type="button">Reset filters</button>
+                <div id="room-legend" class="room-legend" aria-label="Room type legend"></div>
+            </section>
+
+            <section class="chart-grid">
+                <article class="panel">
+                    <header class="panel-header">
+                        <div>
+                            <h2 class="panel-title">Room Type Concentration and Average Price by Borough</h2>
+                            <div class="panel-note">Bubble size = √COUNTD(listing ID) · X-axis uses logarithmic price scale</div>
+                        </div>
+                    </header>
+                    <div id="concentration-chart" class="chart"></div>
+                </article>
+
+                <article class="panel">
+                    <header class="panel-header">
+                        <div>
+                            <h2 class="panel-title">Room Type Composition Across Price Segments by Borough</h2>
+                            <div class="panel-note">Each cell shows share of listings within its borough and price segment</div>
+                        </div>
+                    </header>
+                    <div id="structure-chart" class="chart"></div>
+                </article>
+            </section>
+
+            <section class="chart-grid">
+                <article class="panel">
+                    <header class="panel-header">
+                        <div>
+                            <h2 id="demand-title" class="panel-title">Price and Customer Interest by Borough and Room Type</h2>
+                            <div id="demand-note" class="panel-note">Bubble size = √COUNTD(listing ID) · Click a bubble for neighbourhood detail</div>
+                        </div>
+                        <button id="back-overview" class="detail-button" type="button">← Back to overview</button>
+                    </header>
+                    <div id="demand-chart" class="chart"></div>
+                </article>
+
+                <article class="panel">
+                    <header class="panel-header">
+                        <div>
+                            <h2 class="panel-title">Competitive Intensity by Area</h2>
+                            <div class="panel-note">Color = listings per host · Size = listings · Zoom for neighbourhood detail</div>
+                        </div>
+                        <div class="map-filter">
+                            <label for="filter-host">Host size segment · Map only</label>
+                            <select id="filter-host">
+                                <option value="ALL">All host sizes</option>
+                                <option value="Individual host (1)">Individual host (1)</option>
+                                <option value="Small operator (2–5)">Small operator (2–5)</option>
+                                <option value="Medium operator (6–20)">Medium operator (6–20)</option>
+                                <option value="Large operator (21+)">Large operator (21+)</option>
+                            </select>
+                        </div>
+                    </header>
+                    <div id="competition-map"></div>
+                    <div id="map-status" class="map-status">Geographic level: Borough</div>
+                    <div class="map-scale">
+                        Listings per host
+                        <div class="scale-gradient"></div>
+                        <div class="scale-labels"><span>Low</span><span>High</span></div>
+                    </div>
+                </article>
+            </section>
+        </div>
+    </main>
+
+    <div id="tooltip" class="tooltip"></div>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const ROOM_COLORS = {
+            "Entire home/apt": "#4e79a7",
+            "Private room": "#f28e2b",
+            "Shared room": "#e15759",
+            "Hotel room": "#76b7b2"
+        };
+        const ROOM_ORDER = ["Entire home/apt", "Private room", "Shared room", "Hotel room"];
+        const BOROUGH_ORDER = ["Manhattan", "Brooklyn", "Queens", "Bronx", "Staten Island"];
+        const PRICE_ORDER = ["Budget", "Mid-range", "Premium"];
+        const numberFormat = d3.format(",");
+        const moneyFormat = d3.format("$,.0f");
+        const percentFormat = d3.format(".1%");
+
+        let rawData = [];
+        let priceQ1 = 90;
+        let priceQ3 = 269;
+        let map;
+        let mapLayer;
+        let resizeTimer;
+
+        const state = {
+            borough: "ALL",
+            room: "ALL",
+            price: "ALL",
+            host: "ALL",
+            detail: null
+        };
+
+        const tooltip = d3.select("#tooltip");
+
+        function escapeHtml(value) {
+            return String(value ?? "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
+        function priceSegment(price) {
+            if (price <= priceQ1) return "Budget";
+            if (price <= priceQ3) return "Mid-range";
+            return "Premium";
+        }
+
+        function hostSegment(size) {
+            if (size === 1) return "Individual host (1)";
+            if (size <= 5) return "Small operator (2–5)";
+            if (size <= 20) return "Medium operator (6–20)";
+            return "Large operator (21+)";
+        }
+
+        function scopedData({ includePrice = false, includeHost = false } = {}) {
+            return rawData.filter(d =>
+                (state.borough === "ALL" || d.b === state.borough) &&
+                (state.room === "ALL" || d.r === state.room) &&
+                (!includePrice || state.price === "ALL" || priceSegment(d.p) === state.price) &&
+                (!includeHost || state.host === "ALL" || hostSegment(d.s) === state.host)
+            );
+        }
+
+        function orderedValues(values, order) {
+            const present = new Set(values);
+            return order.filter(value => present.has(value));
+        }
+
+        function setupFilters() {
+            const boroughs = orderedValues(new Set(rawData.map(d => d.b)), BOROUGH_ORDER);
+            const rooms = orderedValues(new Set(rawData.map(d => d.r)), ROOM_ORDER);
+
+            d3.select("#filter-borough").selectAll("option.data-option")
+                .data(boroughs).join("option")
+                .attr("class", "data-option")
+                .attr("value", d => d).text(d => d);
+
+            d3.select("#filter-room").selectAll("option.data-option")
+                .data(rooms).join("option")
+                .attr("class", "data-option")
+                .attr("value", d => d).text(d => d);
+
+            d3.select("#room-legend").selectAll("div.legend-item")
+                .data(rooms).join("div")
+                .attr("class", "legend-item")
+                .html(d => `<span class="legend-dot" style="background:${ROOM_COLORS[d]}"></span><span>${escapeHtml(d)}</span>`)
+                .on("mouseenter", (_, room) => highlightRoom(room))
+                .on("mouseleave", () => highlightRoom(null))
+                .on("click", (_, room) => {
+                    state.room = state.room === room ? "ALL" : room;
+                    d3.select("#filter-room").property("value", state.room);
+                    state.detail = null;
+                    renderAll();
+                });
+
+            ["borough", "room", "price", "host"].forEach(key => {
+                d3.select(`#filter-${key}`).on("change", function() {
+                    state[key] = this.value;
+                    if (key !== "host") state.detail = null;
+                    renderAll();
+                });
+            });
+
+            d3.select("#reset-filters").on("click", () => {
+                Object.assign(state, { borough: "ALL", room: "ALL", price: "ALL", host: "ALL", detail: null });
+                ["borough", "room", "price", "host"].forEach(key => {
+                    d3.select(`#filter-${key}`).property("value", "ALL");
+                });
+                renderAll();
+            });
+
+            d3.select("#back-overview").on("click", () => {
+                state.detail = null;
+                renderDemand(scopedData({ includePrice: true }));
+            });
+        }
+
+        function showTooltip(event, html) {
+            tooltip.html(html).classed("visible", true);
+            moveTooltip(event);
+        }
+
+        function moveTooltip(event) {
+            const node = tooltip.node();
+            const bounds = node.getBoundingClientRect();
+            let left = event.clientX + 14;
+            let top = event.clientY + 14;
+            if (left + bounds.width > window.innerWidth - 8) left = event.clientX - bounds.width - 14;
+            if (top + bounds.height > window.innerHeight - 8) top = event.clientY - bounds.height - 14;
+            tooltip.style("left", `${Math.max(8, left)}px`).style("top", `${Math.max(8, top)}px`);
+        }
+
+        function hideTooltip() { tooltip.classed("visible", false); }
+
+        function highlightRoom(room) {
+            d3.selectAll(".room-mark").classed("is-muted", function() {
+                return Boolean(room) && this.dataset.room !== room;
+            });
+        }
+
+        function addRoomInteraction(selection, tooltipBuilder) {
+            selection
+                .attr("data-room", d => d.room)
+                .on("mouseenter", function(event, d) {
+                    highlightRoom(d.room);
+                    showTooltip(event, tooltipBuilder(d));
+                })
+                .on("mousemove", moveTooltip)
+                .on("mouseleave", () => {
+                    highlightRoom(null);
+                    hideTooltip();
+                });
+        }
+
+        function renderKpis(baseData, priceFilteredData) {
+            d3.select("#kpi-listings").text(numberFormat(baseData.length));
+            d3.select("#kpi-price").text(priceFilteredData.length ? moneyFormat(d3.median(priceFilteredData, d => d.p)) : "—");
+            d3.select("#kpi-demand").text(priceFilteredData.length ? d3.format(".2f")(d3.mean(priceFilteredData, d => d.d)) : "—");
+        }
+
+        function createSvg(selector, height, margin) {
+            const container = d3.select(selector);
+            container.selectAll("*").remove();
+            const width = Math.max(320, container.node().getBoundingClientRect().width);
+            const svg = container.append("svg").attr("viewBox", `0 0 ${width} ${height}`).attr("height", height);
+            const plot = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+            return { svg, plot, width, height, innerWidth: width - margin.left - margin.right, innerHeight: height - margin.top - margin.bottom };
+        }
+
+        function concentrationTooltip(d, currentData) {
+            const subset = currentData.filter(row => row.b === d.borough && row.r === d.room);
+            const segmentCounts = PRICE_ORDER.map(segment => ({
+                segment,
+                count: subset.filter(row => priceSegment(row.p) === segment).length
+            }));
+            const total = d3.sum(segmentCounts, row => row.count) || 1;
+            const bars = segmentCounts.map(row => {
+                const share = row.count / total;
+                return `<div class="tooltip-bar"><span>${row.segment}</span><span class="tooltip-track"><span class="tooltip-fill" style="display:block;width:${share * 100}%"></span></span><span>${d3.format(".0%")(share)}</span></div>`;
+            }).join("");
+            return `<strong>${escapeHtml(d.borough)} · ${escapeHtml(d.room)}</strong>
+                <div><span class="tooltip-muted">Average nightly price:</span> ${moneyFormat(d.avgPrice)}</div>
+                <div><span class="tooltip-muted">Total listings:</span> ${numberFormat(d.count)}</div>
+                <div><span class="tooltip-muted">Listing concentration:</span> ${percentFormat(d.concentration)}</div>
+                <div class="tooltip-divider"></div><strong>Price segment distribution</strong>${bars}`;
+        }
+
+        function renderConcentration(data) {
+            const margin = { top: 38, right: 16, bottom: 42, left: 52 };
+            const chart = createSvg("#concentration-chart", 360, margin);
+            const boroughs = state.borough === "ALL"
+                ? orderedValues(new Set(data.map(d => d.b)), BOROUGH_ORDER)
+                : [state.borough];
+            const groups = d3.rollups(
+                data,
+                values => {
+                    const count = new Set(values.map(d => d.i)).size;
+                    return { count, sqrtCount: Math.sqrt(count), avgPrice: d3.mean(values, d => d.p) };
+                },
+                d => d.b,
+                d => d.r
+            ).flatMap(([borough, rooms]) => rooms.map(([room, values]) => ({ borough, room, ...values })));
+
+            const fullBoroughCounts = new Map(d3.rollups(rawData, values => values.length, d => d.b));
+            groups.forEach(d => { d.concentration = d.count / (fullBoroughCounts.get(d.borough) || 1); });
+
+            if (!groups.length || !boroughs.length) {
+                chart.plot.append("text").attr("x", chart.innerWidth / 2).attr("y", chart.innerHeight / 2)
+                    .attr("text-anchor", "middle").attr("fill", "#8a929e").text("No data for the current filters");
+                return;
+            }
+
+            const facetWidth = chart.innerWidth / boroughs.length;
+            const priceExtent = d3.extent(rawData, d => d.p);
+            const x = d3.scaleLog().base(10).domain([Math.max(1, priceExtent[0]), priceExtent[1]]).range([10, facetWidth - 12]).clamp(true);
+            const y = d3.scaleLinear().domain([0, 1]).range([chart.innerHeight, 0]);
+            const radius = d3.scaleLinear().domain([0, d3.max(groups, d => d.sqrtCount) || 1]).range([4, 19]);
+
+            chart.plot.append("g").attr("class", "grid-line")
+                .call(d3.axisLeft(y).ticks(5).tickSize(-chart.innerWidth).tickFormat(""));
+            chart.plot.append("g").attr("class", "axis").call(d3.axisLeft(y).ticks(5).tickFormat(d3.format(".0%")));
+
+            boroughs.forEach((borough, index) => {
+                const offset = index * facetWidth;
+                const facet = chart.plot.append("g").attr("transform", `translate(${offset},0)`);
+                facet.append("text").attr("class", "facet-label").attr("x", facetWidth / 2).attr("y", -17)
+                    .attr("text-anchor", "middle").text(borough);
+                facet.append("rect")
+                    .attr("x", x(priceQ1)).attr("y", 0)
+                    .attr("width", Math.max(0, x(priceQ3) - x(priceQ1))).attr("height", chart.innerHeight)
+                    .attr("fill", "#f2f2f2");
+                facet.append("line").attr("x1", x(priceQ1)).attr("x2", x(priceQ1)).attr("y2", chart.innerHeight)
+                    .attr("stroke", "#aeb4bc");
+                facet.append("line").attr("x1", x(priceQ3)).attr("x2", x(priceQ3)).attr("y2", chart.innerHeight)
+                    .attr("stroke", "#aeb4bc");
+                facet.append("g").attr("class", "axis").attr("transform", `translate(0,${chart.innerHeight})`)
+                    .call(d3.axisBottom(x).tickValues([25, 250, 2500, 25000].filter(v => v >= priceExtent[0] && v <= priceExtent[1])).tickFormat(d3.format("~s")));
+                if (index > 0) facet.append("line").attr("y2", chart.innerHeight).attr("stroke", "#d9dde3");
+            });
+
+            chart.plot.append("text").attr("class", "axis-label").attr("transform", "rotate(-90)")
+                .attr("x", -chart.innerHeight / 2).attr("y", -40).attr("text-anchor", "middle")
+                .text("Listing concentration within borough");
+            chart.plot.append("text").attr("class", "axis-label").attr("x", chart.innerWidth / 2)
+                .attr("y", chart.innerHeight + 36).attr("text-anchor", "middle")
+                .text("Avg nightly price (USD, logarithmic scale)");
+
+            const marks = chart.plot.selectAll("circle.room-mark").data(groups).join("circle")
+                .attr("class", "room-mark")
+                .attr("cx", d => boroughs.indexOf(d.borough) * facetWidth + x(d.avgPrice))
+                .attr("cy", d => y(d.concentration))
+                .attr("r", d => radius(d.sqrtCount))
+                .attr("fill", d => ROOM_COLORS[d.room] || "#999")
+                .attr("fill-opacity", .76)
+                .attr("stroke", "#fff").attr("stroke-width", 1.2);
+            addRoomInteraction(marks, d => concentrationTooltip(d, data));
+        }
+
+        function renderStructure(data) {
+            const margin = { top: 30, right: 12, bottom: 22, left: 75 };
+            const chart = createSvg("#structure-chart", 360, margin);
+            const boroughs = state.borough === "ALL"
+                ? orderedValues(new Set(data.map(d => d.b)), BOROUGH_ORDER)
+                : [state.borough];
+            if (!data.length || !boroughs.length) {
+                chart.plot.append("text").attr("x", chart.innerWidth / 2).attr("y", chart.innerHeight / 2)
+                    .attr("text-anchor", "middle").attr("fill", "#8a929e").text("No data");
+                return;
+            }
+
+            const denominator = new Map(d3.rollups(
+                rawData,
+                values => values.length,
+                d => `${d.b}\u0000${priceSegment(d.p)}`
+            ));
+            const grouped = new Map(d3.rollups(
+                data,
+                values => values.length,
+                d => `${d.b}\u0000${priceSegment(d.p)}\u0000${d.r}`
+            ));
+            const rowHeight = chart.innerHeight / boroughs.length;
+            const columnWidth = chart.innerWidth / PRICE_ORDER.length;
+            const barWidth = Math.min(58, columnWidth * .56);
+            const cellHeight = Math.max(25, rowHeight - 19);
+
+            PRICE_ORDER.forEach((segment, i) => {
+                chart.plot.append("text").attr("class", "facet-label")
+                    .attr("x", i * columnWidth + columnWidth / 2).attr("y", -13)
+                    .attr("text-anchor", "middle").text(segment);
+            });
+
+            boroughs.forEach((borough, rowIndex) => {
+                const rowTop = rowIndex * rowHeight;
+                chart.plot.append("text").attr("class", "facet-label").attr("x", -8)
+                    .attr("y", rowTop + rowHeight / 2).attr("text-anchor", "end").attr("dominant-baseline", "middle")
+                    .text(borough);
+                chart.plot.append("line").attr("x2", chart.innerWidth).attr("y1", rowTop + rowHeight)
+                    .attr("y2", rowTop + rowHeight).attr("stroke", "#e4e7eb");
+
+                PRICE_ORDER.forEach((segment, columnIndex) => {
+                    const total = denominator.get(`${borough}\u0000${segment}`) || 1;
+                    let cumulative = 0;
+                    const values = ROOM_ORDER.map(room => {
+                        const count = grouped.get(`${borough}\u0000${segment}\u0000${room}`) || 0;
+                        const share = count / total;
+                        const result = { borough, segment, room, count, share, y0: cumulative, y1: cumulative + share };
+                        cumulative += share;
+                        return result;
+                    }).filter(d => d.count > 0);
+                    const x = columnIndex * columnWidth + (columnWidth - barWidth) / 2;
+                    const bottom = rowTop + rowHeight - 6;
+                    const marks = chart.plot.selectAll(`rect.cell-${rowIndex}-${columnIndex}`).data(values).join("rect")
+                        .attr("class", `room-mark cell-${rowIndex}-${columnIndex}`)
+                        .attr("x", x).attr("width", barWidth)
+                        .attr("y", d => bottom - d.y1 * cellHeight)
+                        .attr("height", d => Math.max(1, d.share * cellHeight))
+                        .attr("fill", d => ROOM_COLORS[d.room] || "#999")
+                        .attr("stroke", "#fff").attr("stroke-width", .6);
+                    addRoomInteraction(marks, d => `<strong>${escapeHtml(d.segment)} · ${escapeHtml(d.borough)}</strong>
+                        <div><span class="tooltip-muted">Room type:</span> ${escapeHtml(d.room)}</div>
+                        <div><span class="tooltip-muted">Listing share:</span> ${percentFormat(d.share)}</div>
+                        <div><span class="tooltip-muted">Listings:</span> ${numberFormat(d.count)}</div>`);
+                });
+            });
+        }
+
+        function renderDemand(data) {
+            const button = d3.select("#back-overview");
+            if (state.detail) {
+                button.classed("visible", true);
+                d3.select("#demand-title").text("Neighbourhood Detail");
+                d3.select("#demand-note").text(`${state.detail.borough} · ${state.detail.room}`);
+                renderDemandDetail(data);
+            } else {
+                button.classed("visible", false);
+                d3.select("#demand-title").text("Price and Customer Interest by Borough and Room Type");
+                d3.select("#demand-note").text("Bubble size = √COUNTD(listing ID) · Click a bubble for neighbourhood detail");
+                renderDemandOverview(data);
+            }
+        }
+
+        function renderDemandOverview(data) {
+            const margin = { top: 18, right: 16, bottom: 42, left: 75 };
+            const chart = createSvg("#demand-chart", 420, margin);
+            const boroughs = state.borough === "ALL"
+                ? orderedValues(new Set(data.map(d => d.b)), BOROUGH_ORDER)
+                : [state.borough];
+            const groups = d3.rollups(
+                data,
+                values => {
+                    const count = new Set(values.map(d => d.i)).size;
+                    return {
+                        count,
+                        sqrtCount: Math.sqrt(count),
+                        avgPrice: d3.mean(values, d => d.p),
+                        avgDemand: d3.mean(values, d => d.d)
+                    };
+                },
+                d => d.b,
+                d => d.r
+            ).flatMap(([borough, rooms]) => rooms.map(([room, values]) => ({ borough, room, ...values })));
+            if (!groups.length) {
+                chart.plot.append("text").attr("x", chart.innerWidth / 2).attr("y", chart.innerHeight / 2)
+                    .attr("text-anchor", "middle").attr("fill", "#8a929e").text("No data for the current filters");
+                return;
+            }
+
+            const priceExtent = d3.extent(rawData, d => d.p);
+            const x = d3.scaleLog().base(10).domain([Math.max(1, priceExtent[0]), priceExtent[1]]).range([0, chart.innerWidth]).clamp(true);
+            const rowHeight = chart.innerHeight / boroughs.length;
+            const radius = d3.scaleLinear().domain([0, d3.max(groups, d => d.sqrtCount) || 1]).range([4, 18]);
+
+            boroughs.forEach((borough, index) => {
+                const rowGroups = groups.filter(d => d.borough === borough);
+                const rowTop = index * rowHeight;
+                const maxDemand = d3.max(rowGroups, d => d.avgDemand) || 1;
+                const y = d3.scaleLinear().domain([0, maxDemand * 1.18]).range([rowTop + rowHeight - 8, rowTop + 8]);
+                chart.plot.append("rect").attr("y", rowTop).attr("width", chart.innerWidth).attr("height", rowHeight)
+                    .attr("fill", index % 2 ? "#fbfbfc" : "#fff");
+                chart.plot.append("text").attr("class", "facet-label").attr("x", -8).attr("y", rowTop + rowHeight / 2)
+                    .attr("text-anchor", "end").attr("dominant-baseline", "middle").text(borough);
+                chart.plot.append("line").attr("x2", chart.innerWidth).attr("y1", rowTop + rowHeight)
+                    .attr("y2", rowTop + rowHeight).attr("stroke", "#dfe3e8");
+                const average = d3.mean(rowGroups, d => d.avgDemand) || 0;
+                chart.plot.append("line").attr("x2", chart.innerWidth).attr("y1", y(average)).attr("y2", y(average))
+                    .attr("stroke", "#979fa9").attr("stroke-dasharray", "4 3");
+
+                const marks = chart.plot.selectAll(`circle.demand-${index}`).data(rowGroups).join("circle")
+                    .attr("class", `room-mark demand-${index}`)
+                    .attr("cx", d => x(d.avgPrice)).attr("cy", d => y(d.avgDemand))
+                    .attr("r", d => radius(d.sqrtCount))
+                    .attr("fill", d => ROOM_COLORS[d.room] || "#999").attr("fill-opacity", .68)
+                    .attr("stroke", "#fff").attr("stroke-width", 1.2)
+                    .style("cursor", "pointer")
+                    .on("click", (_, d) => {
+                        state.detail = { borough: d.borough, room: d.room };
+                        renderDemand(data);
+                    });
+                addRoomInteraction(marks, d => `<strong>${escapeHtml(d.borough)} · ${escapeHtml(d.room)}</strong>
+                    <div><span class="tooltip-muted">Average reviews/month:</span> ${d3.format(".2f")(d.avgDemand)}</div>
+                    <div><span class="tooltip-muted">Average price:</span> ${moneyFormat(d.avgPrice)}</div>
+                    <div><span class="tooltip-muted">Listings:</span> ${numberFormat(d.count)}</div>
+                    <div class="tooltip-divider"></div><strong>Click to view neighbourhood details</strong>`);
+            });
+
+            chart.plot.append("g").attr("class", "axis").attr("transform", `translate(0,${chart.innerHeight})`)
+                .call(d3.axisBottom(x).tickValues([25, 50, 100, 250, 500, 1000, 5000, 20000].filter(v => v >= priceExtent[0] && v <= priceExtent[1])).tickFormat(d3.format("~s")));
+            chart.plot.append("text").attr("class", "axis-label").attr("x", chart.innerWidth / 2)
+                .attr("y", chart.innerHeight + 36).attr("text-anchor", "middle")
+                .text("Average nightly price (USD, logarithmic scale)");
+            chart.plot.append("text").attr("class", "axis-label").attr("transform", "rotate(-90)")
+                .attr("x", -chart.innerHeight / 2).attr("y", -61).attr("text-anchor", "middle").text("Avg reviews/month");
+        }
+
+        function renderDemandDetail(data) {
+            const margin = { top: 20, right: 22, bottom: 44, left: 54 };
+            const chart = createSvg("#demand-chart", 420, margin);
+            const subset = data.filter(d => d.b === state.detail.borough && d.r === state.detail.room);
+            const groups = d3.rollups(
+                subset,
+                values => {
+                    const count = new Set(values.map(d => d.i)).size;
+                    return {
+                        count,
+                        sqrtCount: Math.sqrt(count),
+                        avgPrice: d3.mean(values, d => d.p),
+                        avgDemand: d3.mean(values, d => d.d)
+                    };
+                },
+                d => d.n
+            ).map(([neighbourhood, values]) => ({ neighbourhood, room: state.detail.room, ...values }));
+            if (!groups.length) {
+                chart.plot.append("text").attr("x", chart.innerWidth / 2).attr("y", chart.innerHeight / 2)
+                    .attr("text-anchor", "middle").attr("fill", "#8a929e").text("No neighbourhood detail for this selection");
+                return;
+            }
+
+            const x = d3.scaleLog().base(10).domain(d3.extent(groups, d => d.avgPrice)).nice().range([0, chart.innerWidth]);
+            const y = d3.scaleLinear().domain([0, d3.max(groups, d => d.avgDemand) || 1]).nice().range([chart.innerHeight, 0]);
+            const radius = d3.scaleLinear().domain([0, d3.max(groups, d => d.sqrtCount) || 1]).range([3, 20]);
+            chart.plot.append("g").attr("class", "grid-line").call(d3.axisLeft(y).ticks(6).tickSize(-chart.innerWidth).tickFormat(""));
+            chart.plot.append("g").attr("class", "axis").call(d3.axisLeft(y).ticks(6));
+            chart.plot.append("g").attr("class", "axis").attr("transform", `translate(0,${chart.innerHeight})`)
+                .call(d3.axisBottom(x).ticks(7, "~s"));
+            chart.plot.append("line").attr("x2", chart.innerWidth)
+                .attr("y1", y(d3.mean(groups, d => d.avgDemand))).attr("y2", y(d3.mean(groups, d => d.avgDemand)))
+                .attr("stroke", "#8e96a1").attr("stroke-dasharray", "4 3");
+            chart.plot.append("text").attr("class", "axis-label").attr("x", chart.innerWidth / 2)
+                .attr("y", chart.innerHeight + 38).attr("text-anchor", "middle").text("Average nightly price (USD, logarithmic scale)");
+            chart.plot.append("text").attr("class", "axis-label").attr("transform", "rotate(-90)")
+                .attr("x", -chart.innerHeight / 2).attr("y", -40).attr("text-anchor", "middle").text("Avg reviews/month");
+
+            const marks = chart.plot.selectAll("circle.room-mark").data(groups).join("circle")
+                .attr("class", "room-mark").attr("cx", d => x(d.avgPrice)).attr("cy", d => y(d.avgDemand))
+                .attr("r", d => radius(d.sqrtCount)).attr("fill", ROOM_COLORS[state.detail.room])
+                .attr("fill-opacity", .72).attr("stroke", "#fff").attr("stroke-width", 1.2);
+            addRoomInteraction(marks, d => `<strong>${escapeHtml(d.neighbourhood)}</strong>
+                <div><span class="tooltip-muted">Borough:</span> ${escapeHtml(state.detail.borough)}</div>
+                <div><span class="tooltip-muted">Room type:</span> ${escapeHtml(d.room)}</div>
+                <div><span class="tooltip-muted">Average reviews/month:</span> ${d3.format(".2f")(d.avgDemand)}</div>
+                <div><span class="tooltip-muted">Average price:</span> ${moneyFormat(d.avgPrice)}</div>
+                <div><span class="tooltip-muted">Listings:</span> ${numberFormat(d.count)}</div>`);
+        }
+
+        function initMap() {
+            map = L.map("competition-map", { zoomControl: true, preferCanvas: true }).setView([40.73, -73.94], 10);
+            L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+                maxZoom: 18,
+                attribution: "&copy; OpenStreetMap contributors &copy; CARTO"
+            }).addTo(map);
+            mapLayer = L.layerGroup().addTo(map);
+            map.on("zoomend moveend", () => renderMap(scopedData({ includeHost: true })));
+        }
+
+        function aggregateMapData(data, level) {
+            const valid = data.filter(d => Number.isFinite(d.lt) && Number.isFinite(d.lg));
+            return d3.rollups(
+                valid,
+                values => ({
+                    listings: values.length,
+                    hosts: new Set(values.map(d => d.h)).size,
+                    lat: d3.mean(values, d => d.lt),
+                    lon: d3.mean(values, d => d.lg),
+                    medianPrice: d3.median(values, d => d.p),
+                    borough: values[0].b
+                }),
+                d => level === "Neighbourhood" ? d.n : d.b
+            ).map(([area, values]) => ({
+                area,
+                level,
+                ...values,
+                listingsPerHost: values.listings / Math.max(1, values.hosts)
+            }));
+        }
+
+        function renderMap(data) {
+            if (!map || !mapLayer) return;
+            mapLayer.clearLayers();
+            const level = map.getZoom() >= 12 ? "Neighbourhood" : "Borough";
+            const groups = aggregateMapData(data, level);
+            d3.select("#map-status").text(`Geographic level: ${level} · ${numberFormat(groups.length)} areas`);
+            if (!groups.length) return;
+
+            const goldToDarkRed = t => d3.interpolateRgbBasis([
+                "#ffd54f", "#f39c12", "#d35400", "#b22222", "#6b0000"
+            ])(t);
+            const color = d3.scaleSequential(goldToDarkRed)
+                .domain([d3.min(groups, d => d.listingsPerHost) || 0, d3.max(groups, d => d.listingsPerHost) || 1]);
+            const radius = d3.scaleSqrt()
+                .domain([1, d3.max(groups, d => d.listings) || 1])
+                .range(level === "Borough" ? [10, 35] : [4, 18]);
+
+            groups.forEach(d => {
+                const marker = L.circleMarker([d.lat, d.lon], {
+                    radius: radius(d.listings),
+                    color: "#fff",
+                    weight: 1.2,
+                    fillColor: color(d.listingsPerHost),
+                    fillOpacity: .75
+                });
+                marker.bindTooltip(`<strong>${escapeHtml(d.area)}</strong><br>
+                    Geographic level: ${d.level}<br>
+                    Listings: ${numberFormat(d.listings)}<br>
+                    Active hosts: ${numberFormat(d.hosts)}<br>
+                    Listings per host: ${d3.format(".2f")(d.listingsPerHost)}<br>
+                    Median nightly price: ${moneyFormat(d.medianPrice)}`, { sticky: true });
+                marker.addTo(mapLayer);
+            });
+        }
+
+        function renderAll() {
+            const baseData = scopedData();
+            const priceFilteredData = scopedData({ includePrice: true });
+            const mapData = scopedData({ includeHost: true });
+            renderKpis(baseData, priceFilteredData);
+            renderConcentration(baseData);
+            renderStructure(priceFilteredData);
+            renderDemand(priceFilteredData);
+            renderMap(mapData);
+        }
+
+        Promise.all([
+            d3.json(`data/dt_tam_market_analysis.json?t=${Date.now()}`)
+        ]).then(([payload]) => {
+            priceQ1 = payload.meta.price_q1;
+            priceQ3 = payload.meta.price_q3;
+            rawData = payload.listings.map(d => ({
+                ...d,
+                p: +d.p,
+                d: +d.d,
+                s: +d.s,
+                lt: d.lt == null ? null : +d.lt,
+                lg: d.lg == null ? null : +d.lg
+            }));
+            d3.select("#loading").remove();
+            d3.select("#dashboard-content").property("hidden", false);
+            setupFilters();
+            initMap();
+            renderAll();
+        }).catch(error => {
+            console.error(error);
+            d3.select("#loading").attr("class", "error-box")
+                .html(`<strong>Không thể tải dashboard.</strong><br>Hãy chạy bằng web server và kiểm tra file <code>data/dt_tam_market_analysis.json</code>.<br><small>${escapeHtml(error.message)}</small>`);
+        });
+
+        window.addEventListener("resize", () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                if (!rawData.length) return;
+                renderConcentration(scopedData());
+                renderStructure(scopedData({ includePrice: true }));
+                renderDemand(scopedData({ includePrice: true }));
+                if (map) map.invalidateSize();
+            }, 180);
+        });
+    </script>
+</body>
+</html>
